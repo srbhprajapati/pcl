@@ -390,7 +390,7 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> simpleVis (pcl::PointCloud<
 }
 */
 
-void capture (Eigen::Isometry3d pose_in, string point_cloud_fname)
+void capture (const Eigen::Isometry3d &pose_in, string point_cloud_fname)
 {
   // No reference image - but this is kept for compatability with range_test_v2:
   float* reference = new float[range_likelihood_->getRowHeight() * range_likelihood_->getColWidth()];
@@ -503,7 +503,7 @@ void capture (Eigen::Isometry3d pose_in, string point_cloud_fname)
 
 
 
-void print_Quaterniond(Eigen::Quaterniond r, std::stringstream &ss){
+void print_Quaterniond(const Eigen::Quaterniond &r, std::stringstream &ss){
   ss <<r.w()<<", "<<r.x()<<", "<<r.y()<<", "<<r.z() ;
   //  std::cout << r.str() << "q\n";
 }
@@ -527,7 +527,7 @@ void wRo_to_euler(const Eigen::Matrix3f& wRo, double& yaw, double& pitch, double
   roll  = standardRad(atan2(wRo(0,2)*s - wRo(1,2)*c, -wRo(0,1)*s + wRo(1,1)*c));
 }
 
-void print_Isometry3d(Eigen::Isometry3d pose, std::stringstream &ss){
+void print_Isometry3d(const Eigen::Isometry3d &pose, std::stringstream &ss){
   Eigen::Vector3d t(pose.translation());
   Eigen::Quaterniond r(pose.rotation());
   ss <<t[0]<<", "<<t[1]<<", "<<t[2]<<" | " 
@@ -683,8 +683,8 @@ initialize (int, char** argv)
 
   // works for small files:
   camera_->set(-5.0, 0.0, 1.0, 0.0, 0.0, 0.0);
-  pcl::console::print_info("About to read: %s", argv[2]);
-  loadPolygonMeshModel (argv[2]);
+  pcl::console::print_info("About to read: %s", argv[1]);
+  loadPolygonMeshModel (argv[1]);
 }
 
 int

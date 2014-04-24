@@ -16,6 +16,12 @@ if(GLEW_FOUND)
       ${VTK_IO_TARGET_LINK_LIBRARIES}   
       pcl_simulation   pcl_common  pcl_io pcl_visualization 
       ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+	  
+	PCL_ADD_EXECUTABLE(pcl_simulation_sensor ${SUBSYS_NAME} simulation_sensor.cpp)
+    target_link_libraries (pcl_simulation_sensor
+      ${VTK_IO_TARGET_LINK_LIBRARIES}   pcl_kdtree
+      pcl_simulation   pcl_common  pcl_io pcl_visualization 
+      ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
 
     PCL_ADD_EXECUTABLE(pcl_sim_test_performance ${SUBSYS_NAME} sim_test_performance.cpp)
     target_link_libraries (pcl_sim_test_performance 

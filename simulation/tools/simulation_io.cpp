@@ -95,7 +95,7 @@ pcl::simulation::SimExample::initializeGL (int argc, char** argv)
 
 
 void
-pcl::simulation::SimExample::doSim (Eigen::Isometry3d pose_in)
+pcl::simulation::SimExample::doSim (const Eigen::Isometry3d &pose_in)
 {
   // No reference image - but this is kept for compatability with range_test_v2:
   float* reference = new float[rl_->getRowHeight() * rl_->getColWidth()];

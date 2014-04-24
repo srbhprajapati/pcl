@@ -288,13 +288,13 @@ pcl::simulation::RangeLikelihood::RangeLikelihood (int rows, int cols, int row_h
   // Load shader
   likelihood_program_ = gllib::Program::Ptr (new gllib::Program ());
   // TODO: to remove file dependency include the shader source in the binary
-  if (!likelihood_program_->addShaderFile ("compute_score.vert", gllib::VERTEX))
+  if (!likelihood_program_->addShaderFile ("J:/sourabh/Point Cloud Library/pcl-master/simulation/src/compute_score.vert", gllib::VERTEX))
   {
-    std::cout << "Failed loading vertex shader" << std::endl;
+    std::cout << "Failed loading vertex shader compute score" << std::endl;
     exit (-1);
   }
 
-  if (!likelihood_program_->addShaderFile ("compute_score.frag", gllib::FRAGMENT))
+  if (!likelihood_program_->addShaderFile ("J:/sourabh/Point Cloud Library/pcl-master/simulation/src/compute_score.frag", gllib::FRAGMENT))
   {
     std::cout << "Failed loading fragment shader" << std::endl;
     exit (-1);

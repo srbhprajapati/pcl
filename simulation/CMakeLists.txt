@@ -6,6 +6,17 @@ set(build FALSE)
 find_package(OpenGL)
 find_package(GLEW)
 
+###############################
+#find_package(GLUT_REQUIRED)
+#include_directories(${GLUT_INCLUDE_DIRS})
+#link_directories(${GLUT_LIBRARY_DIRS})
+#add_definitions(${GLUT_DEFINITIONS})
+#if(NOT GLUT_FOUND)
+#	message(ERROR "GLUT not found")
+#endif(NOT GLUT_FOUND)
+###############################
+
+
 PCL_SUBSYS_OPTION(build "${SUBSYS_NAME}" "${SUBSYS_DESC}" OFF)
 PCL_SUBSYS_DEPEND(build "${SUBSYS_NAME}" DEPS ${SUBSYS_DEPS} EXT_DEPS opengl glew)
 
@@ -19,6 +30,7 @@ if(build)
          src/scene.cpp
          src/glsl_shader.cpp
          src/sum_reduce.cpp
+		 src/laser_sensor.cpp
         )
 
     set(incs 
@@ -28,6 +40,7 @@ if(build)
         "include/pcl/${SUBSYS_NAME}/scene.h"
         "include/pcl/${SUBSYS_NAME}/glsl_shader.h"
         "include/pcl/${SUBSYS_NAME}/sum_reduce.h"
+		"include/pcl/${SUBSYS_NAME}/laser_sensor.h"
         )
 
     set(LIB_NAME "pcl_${SUBSYS_NAME}")

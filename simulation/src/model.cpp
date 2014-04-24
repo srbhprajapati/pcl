@@ -74,8 +74,7 @@ pcl::simulation::TriangleMeshModel::TriangleMeshModel (pcl::PolygonMesh::Ptr plg
   size_ = static_cast<GLuint>(indices.size ());
 }
 
-void
-pcl::simulation::TriangleMeshModel::draw ()
+void pcl::simulation::TriangleMeshModel::draw ()
 {
   glEnable (GL_DEPTH_TEST);
 
@@ -172,8 +171,8 @@ pcl::simulation::PolygonMeshModel::PolygonMeshModel (GLenum mode, pcl::PolygonMe
 	apoly.vertices_[3*j + 2] = tmp (2);
 	// r,g,b: input is ints 0->255, opengl wants floats 0->1
 	apoly.colors_[4*j + 0] = 1.0f; // Red
-	apoly.colors_[4*j + 1] = 0.0f; // Green
-	apoly.colors_[4*j + 2] = 0.0f; // Blue
+	apoly.colors_[4*j + 1] = 1.0f; // Green
+	apoly.colors_[4*j + 2] = 1.0f; // Blue
 	apoly.colors_[4*j + 3] = 1.0;
       }
       polygons.push_back (apoly);
@@ -191,8 +190,7 @@ pcl::simulation::PolygonMeshModel::~PolygonMeshModel ()
   }
 }
 
-void
-pcl::simulation::PolygonMeshModel::draw ()
+void pcl::simulation::PolygonMeshModel::draw ()
 {
   // This might be a little quicker than drawing using individual polygons
   // TODO: test by how much
@@ -235,8 +233,7 @@ pcl::simulation::PointCloudModel::~PointCloudModel ()
   delete colors_;
 }
 
-void
-pcl::simulation::PointCloudModel::draw ()
+void pcl::simulation::PointCloudModel::draw ()
 {
   glEnable (GL_DEPTH_TEST);
 
@@ -279,8 +276,7 @@ pcl::simulation::Quad::~Quad ()
   glDeleteBuffers (1, &quad_vbo_);
 }
 
-void
-pcl::simulation::Quad::render ()
+void pcl::simulation::Quad::render ()
 {
   glBindBuffer (GL_ARRAY_BUFFER, quad_vbo_);
   glEnableVertexAttribArray (0);
@@ -321,16 +317,14 @@ pcl::simulation::TexturedQuad::~TexturedQuad ()
   glDeleteTextures (1, &texture_);
 }
 
-void
-pcl::simulation::TexturedQuad::setTexture (const uint8_t* data)
+void pcl::simulation::TexturedQuad::setTexture (const uint8_t* data)
 {
   glBindTexture (GL_TEXTURE_2D, texture_);
   glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width_, height_, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
   glBindTexture (GL_TEXTURE_2D, 0);
 }
 
-void
-pcl::simulation::TexturedQuad::render ()
+void pcl::simulation::TexturedQuad::render ()
 {
   program_->use ();
   glActiveTexture (GL_TEXTURE0);

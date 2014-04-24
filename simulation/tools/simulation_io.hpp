@@ -48,7 +48,7 @@ namespace pcl
         Camera::Ptr camera_;
         RangeLikelihood::Ptr rl_;  
     
-        void doSim (Eigen::Isometry3d pose_in);
+        void doSim (const Eigen::Isometry3d &pose_in);
     
         void write_score_image(const float* score_buffer,std::string fname);
         void write_depth_image(const float* depth_buffer,std::string fname);

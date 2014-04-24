@@ -211,7 +211,7 @@ pcl::simulation::gllib::Program::loadProgramFromText (const std::string& vertex_
   Program::Ptr program = gllib::Program::Ptr (new gllib::Program ());
   if (!program->addShaderText (vertex_shader_text, gllib::VERTEX))
   {
-    std::cerr << "Failed loading vertex shader" << std::endl;
+    std::cerr << "Failed loading vertex shader vertex_shader_text" << std::endl;
   }
 
   // TODO: to remove file dependency include the shader source in the binary
@@ -232,7 +232,7 @@ pcl::simulation::gllib::Program::loadProgramFromFile (const std::string& vertex_
   Program::Ptr program = gllib::Program::Ptr (new gllib::Program ());
   if (!program->addShaderFile (vertex_shader_file, gllib::VERTEX))
   {
-    std::cerr << "Failed loading vertex shader" << std::endl;
+    std::cerr << "Failed loading vertex shader vertex shader file" << std::endl;
   }
 
   // TODO: to remove file dependency include the shader source in the binary
