@@ -1,10 +1,25 @@
 find_package(GLEW)
+
+find_package(Qt  5.3.2 REQUIRED QtCore QtOpenGL QtNetwork QtGui)
+find_package(Qt5Network)
+#find_package(Qt5Gui)
+#find_package(Qt5Widgets)
+#find_package(Qt5Core)
+#find_package(Qt5OpenGL)
+
+SET(QT_USE_QTNETWORK TRUE)
+SET(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 if(GLEW_FOUND)
   find_package(GLUT)
   if(GLUT_FOUND)
-    include_directories(${GLUT_INCLUDE_DIR} ${GLEW_INCLUDE_DIR})
+    include_directories(${GLUT_INCLUDE_DIR} ${GLEW_INCLUDE_DIR} ${QT_INCLUDE_DIR})
     include_directories(${VTK_INCLUDE_DIRS})
+	include_directories(${QT_INCLUDE_DIR})
 
+	INCLUDE(${QT_USE_FILE})
+	ADD_DEFINITIONS(${QT_DEFINITIONS})
+	
     PCL_ADD_EXECUTABLE(pcl_sim_viewer ${SUBSYS_NAME} sim_viewer.cpp)
     target_link_libraries (pcl_sim_viewer   
       ${VTK_IO_TARGET_LINK_LIBRARIES}    pcl_kdtree 
@@ -12,16 +27,32 @@ if(GLEW_FOUND)
       ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
 
     PCL_ADD_EXECUTABLE(pcl_sim_test_simple ${SUBSYS_NAME} sim_test_simple.cpp)
+
     target_link_libraries (pcl_sim_test_simple
       ${VTK_IO_TARGET_LINK_LIBRARIES}   
       pcl_simulation   pcl_common  pcl_io pcl_visualization 
       ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
 	  
-	PCL_ADD_EXECUTABLE(pcl_simulation_sensor ${SUBSYS_NAME} simulation_sensor.cpp)
+	
+	
+	
+	SET(APPLICATION_FORMS applicationwindow.ui)
+	
+	QT4_WRAP_UI(APPLICATION_FORMS_HEADERS ${APPLICATION_FORMS})
+	INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+	PCL_ADD_EXECUTABLE(pcl_simulation_sensor ${SUBSYS_NAME} simulation_sensor.cpp
+															applicationwindow.cpp
+															laserglwidget.cpp
+															laserglwidget.h
+															applicationwindow.h
+															lasersensorthread.cpp
+															lasersensorthread.h
+															${MAINWINDOW_HEADERS_MOC}
+															${APPLICATION_FORMS_HEADERS})
     target_link_libraries (pcl_simulation_sensor
       ${VTK_IO_TARGET_LINK_LIBRARIES}   pcl_kdtree
       pcl_simulation   pcl_common  pcl_io pcl_visualization 
-      ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+      ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${QT_LIBRARIES} Qt5::Network )
 
     PCL_ADD_EXECUTABLE(pcl_sim_test_performance ${SUBSYS_NAME} sim_test_performance.cpp)
     target_link_libraries (pcl_sim_test_performance 
