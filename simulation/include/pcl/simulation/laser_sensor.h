@@ -1,5 +1,3 @@
-
-
 #ifndef _LASER_SENSOR_HPP_
 #define _LASER_SENSOR_HPP_
 
@@ -26,7 +24,6 @@
 
 #include <pcl/pcl_macros.h>
 #include <pcl/simulation/scene.h>
-//#include <pcl/simulation/laser_sensor_udp_interface.h>
 
 #include <QtNetwork/QUdpSocket>
 
@@ -45,19 +42,37 @@ namespace pcl
 		{
 			Q_OBJECT
 			public:
-								
+				
+				//Total number of scanlines
 				int scanLines;
+				
+				//Frequency at which the sensor is sampling points
 				int samplingFrequency;
-				GLuint ProgramId, VertexShaderId, FragmentShaderId;
-				float znear, zfar, main_azimuthal_angle;
-				//GLuint depth_texture[4], depth_texture_1[4], fbo_[4] , fbo_1[4];
-				int index;
-				int scanLineIndex, azimuthal_frequency, scanLineAdd;
 
+				//Shader IDs for the OpenGL rendering - should be private
+				GLuint ProgramId, VertexShaderId, FragmentShaderId;
+
+				//Near Plane, Far Plane - don't know azimuth angle
+				float znear, zfar, main_azimuthal_angle;
+
+				//should be private
+				int index;
+
+				//frequency at which the sensor is rotating its head
+				int azimuthal_frequency;
+
+				//should be private
+				int scanLineIndex, scanLineAdd;
+
+				//Laser sensor Position from where we are sensing the environment
 				float CameraPosition[3];
 				
 				LaserSensor()
 				{
+					//Initialization of Variables for an instance of the
+					//laser sensor class. These variables will determine
+					//the scanning behavior(not scan pattern but other properties
+					//range, accuracy etc.)
 					index=0;
 					scanLineIndex = 32;
 					znear = 1.0f;
@@ -73,11 +88,7 @@ namespace pcl
 
 					initialize_();
 
-					//udpSocket_ = new LaserSensorUdpInterface();
 				}
-
-
-
 				
 
 				/*
@@ -92,6 +103,13 @@ namespace pcl
 				void setSensorPosition(float xpos, float ypos, float zpos){xpos_ = xpos; ypos_ = ypos; zpos_ = zpos;}
 				
 
+				/* Renders the scene to Depth Texture using 'Render to Texture' feature 
+				   of OpenGL. This function creates depth textures relative to the current
+				   position of the sensor. If one has to increase the accuracy of the texture,
+				   he would have to use a 16 bit depth buffer instead of 8 Bit. On the other hand
+				   if someone has to increase the resolution of the sensor, then he would have
+				   to increase the width and height of the texture on which the scene is rendering.
+				   */
 				void renderSceneToDepthTexture(GLuint &dfbo, 
 												float lookAt[],
 												float CameraPosition[],
@@ -103,7 +121,11 @@ namespace pcl
 
 
 				
-				
+				/*
+					This function converts the current depth textures to its
+					actual depth value using camera information like near plane
+					and far plane.
+				*/
 				void depthTextureToRealDepthValues(GLuint &dtexture, 
 													GLuint &dfbo_1,
 													GLuint VBO,
@@ -113,6 +135,9 @@ namespace pcl
 													int texture_height);
 
 				
+				/*
+					Method for generating textures for scene rendering.
+				*/
 				void generatetextures(GLuint &dtexture, 
 										GLuint &dtexture_1, 
 										GLuint &dfbo, 
@@ -121,11 +146,15 @@ namespace pcl
 										int texture_height);
 
 
+
+				/*
+					Creation of Vertex shader and fragment shader for rendering
+				*/
 				void CreateShaders();
 
 
 
-				
+				//Not used I think - Check again				
 				void getPointCloud(GLuint &dtexture_1, 
 									int index,
 									int texture_width,
@@ -133,6 +162,10 @@ namespace pcl
 									float CameraPosition[],
 									float *points);
 
+
+				/*
+					Returns the Point Cloud for Full Field Scan Pattern
+				*/
 				void generateRE0xPointCloudFullScan(GLuint depth_texture_1[],
 							int texture_width,
 							int texture_height,
@@ -141,6 +174,9 @@ namespace pcl
 							);
 
 				
+				/*
+					Returns the Point Cloud for Bounded Elevation Scan Pattern
+				*/
 				void generateRE0xPointCloudBoundedElevation(GLuint depth_texture_1[],
 							int texture_width,
 							int texture_height,
@@ -150,6 +186,9 @@ namespace pcl
 							float lowerBound
 							);
 
+				/*
+					Returns the Point Cloud for Region Scan Pattern
+				*/
 				void generateRE0xPointCloudRegionScan(GLuint depth_texture_1[],
 							int texture_width,
 							int texture_height,
@@ -161,7 +200,9 @@ namespace pcl
 							float angularLeft
 							);
 
-				void generatePointCloud();
+
+
+				
 				/*
 					Display Message
 				*/
@@ -173,7 +214,7 @@ namespace pcl
 				Defines the vertex and Fragment shader for the sensor. Ray marching for
 				the generation of sensor data is performed in Fragment Shader
 				*/
-				void initSensor(void);
+				//void initSensor(void);
 
 				/*
 				Main depth Map display Loop:
@@ -182,7 +223,9 @@ namespace pcl
 				void generateData(void);
 				
 
-				
+				/*
+					Sending the Point Cloud Data to the Client over UDP.
+				*/				
 				void sendData(QByteArray data);
 
 
@@ -195,8 +238,6 @@ namespace pcl
 			float zpos_;
 			
 			QUdpSocket *socket_;
-			//LaserSensorUdpInterface *udpSocket_;
-
 
 			/*
 			Intialize the sensor for UDP Transfer

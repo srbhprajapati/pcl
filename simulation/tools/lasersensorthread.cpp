@@ -42,13 +42,6 @@ LaserSensorThread::LaserSensorThread( LaserGLWidget & _glw )
 	x=0.0;
 	doRendering = false;
 
-	/*
-	f[0]=1.0;		f[1]=1.0;		f[2]=0.0;		f[3]=1.0;		f[4]=1.0;
-	f[5]=1.0;		f[6]=-1.0;		f[7]=0.0;		f[8]=1.0;		f[9]=0.0;
-	f[10]= -1.0;	f[11]= -1.0;	f[12]=0.0;		f[13]=0.0;		f[14]=0.0;
-	f[15]= -1.0;	f[16]= 1.0;		f[17]=0.0;		f[18]=0.0;		f[19]=1.0;*/
-
-	
     socket = new QUdpSocket(this);
     socket->bind(QHostAddress::Any, 1234);
 
@@ -118,13 +111,6 @@ void LaserSensorThread::run( )
 
 void LaserSensorThread::initializeGL()
 {
-    // typical OpenGL init
-    // see OpenGL documentation for an explanation
- /*   glw.qglClearColor("black");
-    glShadeModel(GL_FLAT);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);*/
-
 		
 float f[] =	{1.0, 1.0, 0.0, 1.0, 1.0, 
 			 1.0, -1.0, 0.0, 1.0, 0.0, 
@@ -317,12 +303,6 @@ void LaserSensorThread::paintGL()
 	glutSolidTeapot(2.0);
 
 	
-		//Sleep(800);
-//		QGLWidget::swapBuffers();
-	//	updateGL();
-//		glutSwapBuffers();
-//		glutPostRedisplay();
-
 }
 
 void LaserSensorThread::draw()

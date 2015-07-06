@@ -12,90 +12,6 @@ GLuint ProgramId, VertexShaderId, FragmentShaderId;
 float f[] = {20.0, 20.0, 0.0, 1.0, 0.0, 0.0, 20.0, -20.0, 0.0, 0.0, 1.0, 0.0, -20.0, -20.0, 0.0, 0.0, 0.0, 1.0,
 			-20.0, -20.0, 0.0, 1.0, 0.0, 0.0, -20.0, 20.0, 0.0, 0.0, 1.0, 0.0, 20.0, 20.0, 0.0, 0.0, 0.0, 1.0};
 				
-void pcl::simulation::LaserSensor::initSensor(void)
-{
-    GLenum ErrorCheckValue = glGetError();
-     
-    VertexShaderId = glCreateShader(GL_VERTEX_SHADER);
-	ifstream ifs("C:/Users/Anubhav/Documents/GitHub/pcl/simulation/src/sensor.vert");
-	std::string str( (std::istreambuf_iterator<char>(ifs) ),
-                       (std::istreambuf_iterator<char>()    ) );
-	GLchar *cstr = new GLchar[str.size() + 1];
-	strcpy(cstr, str.c_str());
-	const GLchar *vertexShader = cstr;
-	
-	
-	//cout<<"Vertex Shader : "<<endl;
-	//printf("%s\n",cstr);
-	
-	glShaderSource(VertexShaderId, 1, &vertexShader, NULL);
-    glCompileShader(VertexShaderId);
-    FragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-    ifstream ifsf("C:/Users/Anubhav/Documents/GitHub/pcl/simulation/src/sensor.frag");
-	std::string strf( (std::istreambuf_iterator<char>(ifsf) ),
-                       (std::istreambuf_iterator<char>()    ) );
-	GLchar *cstrf = new GLchar[strf.size() + 1];
-	strcpy(cstrf, strf.c_str());
-	const GLchar *fragmentShader = cstrf;
-
-	//cout<<"Fragment Shader : "<<endl;
-	//printf("%s\n",cstrf);
-	glShaderSource(FragmentShaderId, 1, &fragmentShader, NULL);
-    glCompileShader(FragmentShaderId);
-    ProgramId = glCreateProgram();
-		glAttachShader(ProgramId, VertexShaderId);
-        glAttachShader(ProgramId, FragmentShaderId);
-    glLinkProgram(ProgramId);
-   
-	cout<<"VertexShaderId:"<<VertexShaderId<<endl;
-	cout<<"FragmentShaderId:"<<FragmentShaderId<<endl;
-	cout<<"PROGRAM ID:"<<ProgramId<<endl;
-	
-		GLint status;
-	    glGetProgramiv (ProgramId, GL_LINK_STATUS, &status);
-		cout<<status<<endl;
-    if (status == GL_FALSE)
-    {
-        GLint infoLogLength;
-        glGetProgramiv(ProgramId, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-        glGetProgramInfoLog(ProgramId, infoLogLength, NULL, strInfoLog);
-        fprintf(stderr, "Linker failure: %s\n", strInfoLog);
-        delete[] strInfoLog;
-    }
-
-    ErrorCheckValue = glGetError();
-    if (ErrorCheckValue != GL_NO_ERROR)
-    {
-        fprintf(
-            stderr,
-            "ERROR: Could not create the shaders: %s \n",
-            gluErrorString(ErrorCheckValue)
-        );
- 
-        exit(-1);
-    }
-
-	cout<<"ShaderCreated"<<endl;
-
-	const GLubyte* version = glGetString (GL_VERSION);
-  std::cout << "OpenGL Version: " << version << std::endl;
-  
-  /*glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(90, 4/3, 10.0, 20.0);
-  glMatrixMode(GL_MODELVIEW);
-  gluLookAt(0.0f, 0.0f, 15.0f,
-			0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f);
-*/
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(f), f, GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
-}
 
 void pcl::simulation::LaserSensor::generateData(void)
 {
@@ -149,12 +65,15 @@ void  pcl::simulation::LaserSensor::renderSceneToDepthTexture(GLuint &dfbo,
 			lookAt[0], lookAt[1], lookAt[2],
 			0.0f, 1.0f, 0.0f);
 	scene_->draw();
+	//----------Remove this and check-------------------
 	glBegin(GL_QUADS);
 		glVertex3f(10000.0f, 1.0f, 10000.0f);
 		glVertex3f(-10000.0f, 1.0f, 10000.0f);
 		glVertex3f(-10000.0f, 1.0f, -10000.0f);
 		glVertex3f(10000.0f, 1.0f, -10000.0f);
 	glEnd(); 
+	//---------/Remove this and check-------------------
+	
 	glBindFramebuffer (GL_FRAMEBUFFER, 0);
     //-----------------------Initial Depth texture End------------------------------
 	
@@ -1040,7 +959,6 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudBoundedElevation(GLuint
 				dStream.device()->reset();
 				udpPointCounter = 0;
 			}
-		//}
 
 		delete [] pixels;
 		delete [] pixels2;
@@ -1049,9 +967,6 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudBoundedElevation(GLuint
 
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
-	//cout<<"numBytes : "<<numBytes<<endl;
-	//cout<<"getPointCloud executed"<<endl;
-
 }
 
 
@@ -1333,16 +1248,6 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudRegionScan(GLuint depth
 void pcl::simulation::LaserSensor::initialize_()
 {
 	socket_ = new QUdpSocket(this);
-
-    //Bind Socket to an Address
-    /*if(!socket_->bind(QHostAddress::Any, 1235))
-    {
-        qDebug()<<"Unable to connect to Server";
-    }
-
-	QObject::connect(socket_, SIGNAL(readyRead()),
-                     this, SLOT(readPendingDatagrams()));
-	  */
 }
 
 
@@ -1351,8 +1256,6 @@ void pcl::simulation::LaserSensor::sendData(QByteArray data)
 	QString dataString = "";
 
 	dataString.append(data);
-
-	//qDebug()<<dataString;
 
 	int bytesWritten = socket_->writeDatagram(data, LOCALHOST_IP, LOCALHHOST_PORT);
 	int size = data.size();

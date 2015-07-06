@@ -3,7 +3,7 @@
 #include "applicationwindow.h"
 #include "ui_applicationwindow.h"
 #include <iostream>
-#include "exampleglwidget.h"
+//#include "exampleglwidget.h"
 
 
 
