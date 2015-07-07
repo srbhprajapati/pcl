@@ -49,6 +49,11 @@ public:
 
 	void changeModel(QString path);
 
+	/* 
+		Saves the current point cloud into a pcd file
+	*/
+	void saveModel(QString path);
+
 	void stop_laser_sensor();
 
 public slots:

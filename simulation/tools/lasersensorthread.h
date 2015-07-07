@@ -29,8 +29,6 @@
 #include <QtOpenGL/QGLWidget>
 #include <qmutex.h>
 #include <qwaitcondition.h>
-#include <QtNetwork/QUdpSocket>
-
 
 #define PI 3.14159265
 
@@ -78,21 +76,7 @@ public:
     void setRotation( GLfloat _x, GLfloat _y, GLfloat _z);
 	
 	
-    /** Returns the color of a cube face.
-     * This function can be called from different threads!
-     */
-    int faceAtPosition(const QPoint &pos);
-	
-	
-    /** The six face colors of the cube
-     * This should not be public!
-     */
-    QColor faceColors[6];
 
-
-
-    /// \brief  Sends the Data through UDP Socket
-    void sendData();
 
 	void start_laser_sensor(int azm, int scan);
 	
@@ -103,6 +87,8 @@ public:
 	void changeSensorPosition(float x, float y, float z);
 	
 	void changeModel(QString path);
+
+	void saveModel(QString path);
 
 protected:
     
@@ -116,8 +102,6 @@ protected:
     void paintGL();
 
 private:
-    /** Actually draws the example scene (cube). */
-    void draw();
 	
     /** The QGLWidget of the render thread.
      * This widget provides the GL rendering context.
@@ -152,12 +136,10 @@ private:
 	char scanPatternType;
 
 	float x;
-//	float *f;
 	float *points;
 
 	bool doRendering;
 	
-	QUdpSocket *socket;
 };
 
 

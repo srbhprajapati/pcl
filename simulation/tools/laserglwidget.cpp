@@ -56,17 +56,6 @@ void LaserGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void LaserGLWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    // get the name of the clicked surface
-    int face = glt.faceAtPosition(event->pos());
-    if (face != -1)
-    {
-        QColor color = QColorDialog::getColor(glt.faceColors[face],
-                                              this);
-        if (color.isValid())
-        {
-            glt.faceColors[face] = color;
-        }
-    }
 }
 
 void LaserGLWidget::initRendering( )
@@ -176,3 +165,7 @@ void LaserGLWidget::changeModel(QString path)
 }
 
 
+void LaserGLWidget::saveModel(QString path)
+{
+	glt.saveModel(path);
+}

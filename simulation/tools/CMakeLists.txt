@@ -16,6 +16,7 @@ if(GLEW_FOUND)
     include_directories(${GLUT_INCLUDE_DIR} ${GLEW_INCLUDE_DIR} ${QT_INCLUDE_DIR})
     include_directories(${VTK_INCLUDE_DIRS})
 	include_directories(${QT_INCLUDE_DIR})
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 	INCLUDE(${QT_USE_FILE})
 	ADD_DEFINITIONS(${QT_DEFINITIONS})

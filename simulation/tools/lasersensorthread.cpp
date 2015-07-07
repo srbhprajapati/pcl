@@ -18,12 +18,6 @@ LaserSensorThread::LaserSensorThread( LaserGLWidget & _glw )
     rotationX = 0;
     rotationY = 0;
     rotationZ = 0;
-    faceColors[0] = "red";
-    faceColors[1] = "green";
-    faceColors[2] = "blue";
-    faceColors[3] = "cyan";
-    faceColors[4] = "yellow";
-    faceColors[5] = "magenta";
 
 	texture_width = 1600;
 	texture_height = 1600;
@@ -42,8 +36,6 @@ LaserSensorThread::LaserSensorThread( LaserGLWidget & _glw )
 	x=0.0;
 	doRendering = false;
 
-    socket = new QUdpSocket(this);
-    socket->bind(QHostAddress::Any, 1234);
 
 }
 
@@ -59,7 +51,7 @@ void LaserSensorThread::stop( )
     // set flag to request thread to exit
     // REMEMBER: The thread needs to be woken up once
     // after calling this method to actually exit!
-    render_flag = false;
+    doRendering = false;
 }
 
 void LaserSensorThread::run( )
@@ -85,25 +77,10 @@ void LaserSensorThread::run( )
 		if(doRendering)
 		{
 			paintGL();
-			sendData();
 			// swap the buffers of the GL widget
 			glw.swapBuffers();
 		}
 
-        //glw.doneCurrent(); // release the GL render context to make picking work!
-
-        //// wait until the gl widget says that there is something to render
-        //// glwidget.lockGlContext() had to be called before (see top of the function)!
-        //// this will release the render mutex until the wait condition is met
-        //// and will lock the render mutex again before exiting
-        //// waiting this way instead of insane looping will not waste any CPU ressources
-        //glw.renderCondition().wait(&glw.renderMutex());
-
-        //glw.makeCurrent(); // get the GL render context back
-
-        // DEACTIVATED -- alternatively render a frame after a certain amount of time
-        // prevent to much continous rendering activity
-        // msleep(16); //sleep for 16 ms
     }
     // unlock the render mutex before exit
     glw.unlockGLContext();
@@ -232,11 +209,7 @@ void LaserSensorThread::paintGL()
 		glRotatef(rotationX, 1.0, 0.0, 0.0);
 		glRotatef(rotationY, 0.0, 1.0, 0.0);
 		glRotatef(rotationZ, 0.0, 0.0, 1.0);
-		/*		x += 0.9;
-		glRotatef(x , 1.0, 1.0, 1.0);
-*/
-
-
+		
 	
 		float lookAt1[3], lookAt2[3], lookAt3[3], lookAt4[3];
 		lookAt1[0] = ls1->CameraPosition[0] + 0.0; lookAt1[1] = ls1->CameraPosition[1] + 0.0; lookAt1[2] = ls1->CameraPosition[2] - 1.0;
@@ -305,105 +278,6 @@ void LaserSensorThread::paintGL()
 	
 }
 
-void LaserSensorThread::draw()
-{
-    // draws the cube
-    static const GLfloat coords[6][4][3] =
-        {
-            {
-                {
-                    +1.0, -1.0, +1.0
-                }
-                , { +1.0, -1.0, -1.0 },
-                { +1.0, +1.0, -1.0 }, { +1.0, +1.0, +1.0 }
-            },
-            { { -1.0, -1.0, -1.0 }, { -1.0, -1.0, +1.0 },
-              { -1.0, +1.0, +1.0 }, { -1.0, +1.0, -1.0 } },
-            { { +1.0, -1.0, -1.0 }, { -1.0, -1.0, -1.0 },
-              { -1.0, +1.0, -1.0 }, { +1.0, +1.0, -1.0 } },
-            { { -1.0, -1.0, +1.0 }, { +1.0, -1.0, +1.0 },
-              { +1.0, +1.0, +1.0 }, { -1.0, +1.0, +1.0 } },
-            { { -1.0, -1.0, -1.0 }, { +1.0, -1.0, -1.0 },
-              { +1.0, -1.0, +1.0 }, { -1.0, -1.0, +1.0 } },
-            { { -1.0, +1.0, +1.0 }, { +1.0, +1.0, +1.0 },
-              { +1.0, +1.0, -1.0 }, { -1.0, +1.0, -1.0 } }
-        };
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0, 0.0, -10.0);
-    glRotatef(rotationX, 1.0, 0.0, 0.0);
-    glRotatef(rotationY, 0.0, 1.0, 0.0);
-    glRotatef(rotationZ, 0.0, 0.0, 1.0);
-
-    for (int i = 0; i < 6; ++i)
-    {
-        // assign names for each surface
-        // this make picking work
-        glLoadName(i);
-        glBegin(GL_QUADS);
-        glw.qglColor(faceColors[i]);
-        for (int j = 0; j < 4; ++j)
-        {
-            glVertex3f(coords[i][j][0], coords[i][j][1],
-                       coords[i][j][2]);
-        }
-        glEnd();
-    }
-}
-
-int LaserSensorThread::faceAtPosition(const QPoint &pos)
-{
-    // we need to lock the rendering context
-    glw.lockGLContext();
-
-    // this is the same as in every OpenGL picking example
-    const int MaxSize = 512; // see below for an explanation on the buffer content
-    GLuint buffer[MaxSize];
-    GLint viewport[4];
-
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glSelectBuffer(MaxSize, buffer);
-    // enter select mode
-    glRenderMode(GL_SELECT);
-
-    glInitNames();
-    glPushName(0);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluPickMatrix((GLdouble)pos.x(),
-                  (GLdouble)(viewport[3] - pos.y()),
-                  5.0, 5.0, viewport);
-    GLfloat x = (GLfloat)viewport_size.width() / viewport_size.height();
-    glFrustum(-x, x, -1.0, 1.0, 4.0, 15.0);
-    draw();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-
-
-    // finally release the rendering context again
-    if (!glRenderMode(GL_RENDER))
-    {
-        glw.unlockGLContext();
-        return -1;
-    }
-    glw.unlockGLContext();
-
-    // Each hit takes 4 items in the buffer.
-    // The first item is the number of names on the name stack when the hit occured.
-    // The second item is the minimum z value of all the verticies that intersected
-    // the viewing area at the time of the hit. The third item is the maximum z value
-    // of all the vertices that intersected the viewing area at the time of the hit
-    // and the last item is the content of the name stack at the time of the hit
-    // (name of the object). We are only interested in the object name
-    // (number of the surface).
-
-    // return the name of the clicked surface
-    return buffer[3];
-}
-
 void LaserSensorThread::setRotation( GLfloat _x, GLfloat _y, GLfloat _z )
 {
     rotationX += _x;
@@ -430,7 +304,6 @@ void LaserSensorThread::load_PolygonMesh_model (char* polygon_file)
 
 void LaserSensorThread::start_laser_sensor(int azm, int scan)
 {
-//	render_flag = false;
 	
 	std::cout<<"Azimuth : "<<azm<<std::endl;
 	std::cout<<"ScanLine : "<<scan<<std::endl;
@@ -465,6 +338,23 @@ void LaserSensorThread::changeModel(QString path)
 	    << mesh.cloud.data.size () << " triangles\n";
 
   doRendering = true;
+}
+
+void LaserSensorThread::saveModel(QString path)
+{
+	doRendering = false;
+
+	pcl::PointCloud<pcl::PointXYZ> cloud;
+
+	for(int index=0; index<100000; index++)
+	{
+		cloud.push_back(pcl::PointXYZ(points[3*index], points[3*index+1], points[3*index+2]));
+	}
+
+	pcl::io::savePCDFileASCII(path.toStdString(), cloud);
+	std::cerr << "Saved " << cloud.points.size () << " data points to test_pcd.pcd." << std::endl;
+
+	doRendering = true;
 }
 
 
@@ -504,24 +394,11 @@ void LaserSensorThread::changeScanMode(int mode, int Azimuthal, int Scanline,  f
 
 void LaserSensorThread::changeSensorPosition(float x, float y, float z)
 {
-	render_flag = false;
+	doRendering = false;
 	ls1->CameraPosition[0] = x;
 	ls1->CameraPosition[1] = y;
 	ls1->CameraPosition[2] = z;
-	render_flag = true;
+	doRendering = true;
 }
 
-
-void LaserSensorThread::sendData()
-{
-    QByteArray Data;
-
-    for(int i=0; i<10000; i++)
-    {
-        Data.append("Data sent from OpenGL Thread \n");
-    }
-    int bytesWritten = socket->writeDatagram(Data, QHostAddress::LocalHost, 1234);
-
-    qDebug()<<"Bytes Written : "<<bytesWritten;
-}
 

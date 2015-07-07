@@ -27,7 +27,12 @@ ApplicationWindow::ApplicationWindow(QWidget *parent) :
 
 
 
+	//Connecting Open Button to corresponding slot
 	QObject::connect(ui->actionOpen, SIGNAL(triggered()), this, SLOT(on_openAction_clicked()));
+
+
+	//Connecting Save Button to corresponding slot
+	QObject::connect(ui->actionSaveCloud, SIGNAL(triggered()), this, SLOT(on_SaveCloud_clicked()));
 
 }
 
@@ -152,14 +157,6 @@ void ApplicationWindow::on_regionScanModeButton_clicked()
 
 	ui->scanModeValueLabel->setText(QString("RS"));
 }
-
-void ApplicationWindow::on_openAction_clicked()
-{
-    QString filename = QFileDialog::getOpenFileName(this, tr("Open File"), "C:/", tr("Data Files(*.obj *.ply)"));
-
-	ui->widget->changeModel(filename);
-}
-
 
 
 void ApplicationWindow::readPendingDatagrams()
@@ -312,5 +309,22 @@ void ApplicationWindow::readPendingDatagrams()
 
 
     }
+
+}
+
+
+void ApplicationWindow::on_openAction_clicked()
+{
+    QString filename = QFileDialog::getOpenFileName(this, tr("Open File"), "C:/", tr("Data Files(*.obj *.ply)"));
+
+	ui->widget->changeModel(filename);
+}
+
+
+void ApplicationWindow::on_SaveCloud_clicked()
+{
+	QString filename = QFileDialog::getSaveFileName(this, tr("Save File"), "C:/", tr("Data Files(*.pcd)"));
+
+	ui->widget->saveModel(filename);
 
 }

@@ -9,8 +9,6 @@ varying vec2 texCoord;
 
 void main (void)  
 {
-	//float sphere_radius = 1.732;
-	//vec3 point = vec3(texCoord);
 	vec3 texcolor =  vec3(texture2D(depth_texture, texCoord));
 	
 	float zn = 1.0;
@@ -31,7 +29,7 @@ void main (void)
 	
 	float val2 = z_e/cos_thetha;
 
-		val2 /= zf;
+	val2 /= zf;
 		
 	gl_FragColor = vec4(val2, val2, val2, 1.0);  
 }  

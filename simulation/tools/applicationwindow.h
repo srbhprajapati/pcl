@@ -37,6 +37,7 @@ private slots:
 	void on_regionScanModeButton_clicked();
 	void on_LaserPositionButton_clicked();
 	void on_openAction_clicked();
+	void on_SaveCloud_clicked();
 	
 private:
     Ui::ApplicationWindow *ui;

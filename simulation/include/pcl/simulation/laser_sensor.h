@@ -61,7 +61,9 @@ namespace pcl
 				//frequency at which the sensor is rotating its head
 				int azimuthal_frequency;
 
-				//should be private
+				
+				//scanLineAdd - Whether the sensor is moving from top to bottom
+				//				or bottom to top				
 				int scanLineIndex, scanLineAdd;
 
 				//Laser sensor Position from where we are sensing the environment
@@ -122,10 +124,10 @@ namespace pcl
 
 				
 				/*
-					This function converts the current depth textures to its
-					actual depth value using camera information like near plane
-					and far plane.
-				*/
+				 *	This function converts the current depth textures to its
+				 *	actual depth value using camera information like near plane
+				 *	and far plane.
+				 */
 				void depthTextureToRealDepthValues(GLuint &dtexture, 
 													GLuint &dfbo_1,
 													GLuint VBO,
@@ -136,8 +138,9 @@ namespace pcl
 
 				
 				/*
-					Method for generating textures for scene rendering.
-				*/
+				 *	Method for generating textures (Scene Depth Texture and Offset Texture) 
+				 *	for scene rendering.
+				 */
 				void generatetextures(GLuint &dtexture, 
 										GLuint &dtexture_1, 
 										GLuint &dfbo, 
@@ -148,20 +151,20 @@ namespace pcl
 
 
 				/*
-					Creation of Vertex shader and fragment shader for rendering
-				*/
+				 *	Creation of Vertex shader and fragment shader for rendering
+				 */
 				void CreateShaders();
 
 
 
 				//Not used I think - Check again				
-				void getPointCloud(GLuint &dtexture_1, 
+				/*void getPointCloud(GLuint &dtexture_1, 
 									int index,
 									int texture_width,
 									int texture_height,
 									float CameraPosition[],
 									float *points);
-
+*/
 
 				/*
 					Returns the Point Cloud for Full Field Scan Pattern
