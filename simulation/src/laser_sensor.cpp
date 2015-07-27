@@ -10,9 +10,6 @@ using namespace std;
 
 GLuint VBO;
 GLuint ProgramId, VertexShaderId, FragmentShaderId;
-//float f[] = {20.0, 20.0, 0.0, 1.0, 0.0, 0.0, 20.0, -20.0, 0.0, 0.0, 1.0, 0.0, -20.0, -20.0, 0.0, 0.0, 0.0, 1.0,
-//			-20.0, -20.0, 0.0, 1.0, 0.0, 0.0, -20.0, 20.0, 0.0, 0.0, 1.0, 0.0, 20.0, 20.0, 0.0, 0.0, 0.0, 1.0};
-				
 
 void pcl::simulation::LaserSensor::generateData(void)
 {
@@ -109,6 +106,8 @@ void pcl::simulation::LaserSensor::depthTextureToRealDepthValues(GLuint &dtextur
 		GLuint location_zfar = glGetUniformLocation(ProgramId, "zFar");
 		glUniform1f(location_znear, znear);
 		glUniform1f(location_zfar, zfar);
+
+		GLenum err = glGetError();
 
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
@@ -1141,6 +1140,8 @@ void pcl::simulation::LaserSensor::sendData(QByteArray data)
 	QString dataString = "";
 
 	dataString.append(data);
+
+	sendData(dataString);
 
 	int bytesWritten = socket_->writeDatagram(data, LOCALHOST_IP, LOCALHHOST_PORT);
 	int size = data.size();

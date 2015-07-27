@@ -90,6 +90,10 @@ public:
 
 	void saveModel(QString path);
 
+public slots:
+
+	void sendData(QString packetToBeSent);
+
 protected:
     
 	/** Init the GL environment. */

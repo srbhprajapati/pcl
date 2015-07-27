@@ -31,6 +31,10 @@
 #define LOCALHHOST_PORT 1235
 #define PI 3.14159265
 
+//Parameters Related to Sensor
+#define FARTHEST_DISTANCE 10.0
+
+
 using namespace std;
 
 
@@ -231,6 +235,8 @@ namespace pcl
 				*/				
 				void sendData(QByteArray data);
 
+			signals:
+				void sendData(QString packetToBeSent);		
 
 			private:
 			

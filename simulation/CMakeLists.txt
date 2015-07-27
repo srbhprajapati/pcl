@@ -40,7 +40,7 @@ if(build)
          src/glsl_shader.cpp
          src/sum_reduce.cpp
          src/laser_sensor.cpp
-	#	 src/laser_sensor_udp_interface.cpp
+		 src/laser_sensor_wrapper.cpp
         )
 
     set(incs 
@@ -51,8 +51,11 @@ if(build)
         "include/pcl/${SUBSYS_NAME}/glsl_shader.h"
         "include/pcl/${SUBSYS_NAME}/sum_reduce.h"
         "include/pcl/${SUBSYS_NAME}/laser_sensor.h"
+		"include/pcl/${SUBSYS_NAME}/laser_sensor_wrapper.h"
         )
 
+
+	
 
 	
 	
@@ -63,7 +66,7 @@ if(build)
     set(LIB_NAME "pcl_${SUBSYS_NAME}")
     include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
                         "${GLEW_INCLUDE_DIR}")
-
+	include_directories(${VTK_INCLUDE_DIRS})
 	include_directories(${QT_INCLUDE_DIR})
 
 	# Find the QtWidgets library
@@ -92,9 +95,10 @@ if(build)
 										${GLEW_LIBRARIES} 
 										${QT_LIBRARIES} 
 										Qt5::Core 
-										Qt5::Network)
+										Qt5::Network
+										${VTK_IO_TARGET_LINK_LIBRARIES})
+			  
 
-						  
 						  
     set(EXT_DEPS eigen3)
     PCL_MAKE_PKGCONFIG("${LIB_NAME}" "${SUBSYS_NAME}" "${SUBSYS_DESC}"
@@ -106,4 +110,6 @@ if(build)
 
     add_subdirectory(tools)
 
+
+	
 endif(build)
