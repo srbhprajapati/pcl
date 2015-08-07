@@ -10,6 +10,7 @@
 #include <gl/glew.h>
 #include <QGLWidget>
 #include <QGLFunctions>
+#include <QtCore\qtimer.h>
 
 #include <pcl/pcl_macros.h>
 #include <pcl/io/pcd_io.h>
@@ -17,6 +18,7 @@
 #include <pcl/PolygonMesh.h>
 #include <pcl/simulation/scene.h>
 #include <pcl/simulation/laser_sensor.h>
+#include <pcl/simulation/laser_sensor_udp_interface.h>
 
 #include <cstring>
 #include <cmath>
@@ -35,6 +37,7 @@ namespace pcl
 				
 				//destructor
 				~LaserSensorWrapper();
+
 				
 				
 			protected:
@@ -48,6 +51,32 @@ namespace pcl
 				//Resizing the current Rendering window
 				void resizeGL(int width, int height);
 
+			private slots:
+				
+				//Starts the sensor				
+				void startSensor(int Sampling_Frequency);
+
+				//Changes current Scan pattern to Full Field Scan
+				void startFullFieldScan(int Azimuthal_value, int Scanline_value);
+
+				//Changes current Scan pattern to Bounded Elevation 
+				void startBoundedElevationScan(int Azimuthal_value, int Scanline_value, float upper_bound, float lower_bound);
+
+				//Changes current Scan pattern to Region Scan 
+				void startRegionScan(int Azimuthal_value, int Scanline_value, float upper_bound, float lower_bound, float lAngular, float rAngular);
+
+				//Stops the sensor
+				void stopSensor();
+
+				//Changes the Model on which Scanning is performed
+				void changeModel(QString path);
+
+				
+				//Saves the point Cloud
+				void saveModel(QString path);
+
+
+				void update();
 
 			private:
 	
@@ -66,6 +95,7 @@ namespace pcl
 	
 				//Parameters of the sensor: Upper Bound, Lower Bound, Angular Left, Angular Right
 				float u_bound, l_bound, angular_right, angular_left;
+				int Azimuthal_freq, Number_of_Scanlines;
 
 	
 				//Scene on which we need the simulation to be performed on
@@ -82,6 +112,12 @@ namespace pcl
 
 				//All the points which are sensed by the sensor
 				float *points;
+
+				LaserSensorUdpInterface *_udp;
+
+				bool _isSensorActive;
+
+				QTimer *_renderTimer;
 
 		};
 	}

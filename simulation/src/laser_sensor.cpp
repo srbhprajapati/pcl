@@ -11,26 +11,41 @@ using namespace std;
 GLuint VBO;
 GLuint ProgramId, VertexShaderId, FragmentShaderId;
 
-void pcl::simulation::LaserSensor::generateData(void)
+
+pcl::simulation::LaserSensor::LaserSensor()
 {
-
-	glUseProgram(ProgramId);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	int index = glGetAttribLocation(ProgramId, "position");
-	int col = glGetAttribLocation(ProgramId, "color");
-
-	glEnableVertexAttribArray(index);
-	glEnableVertexAttribArray(col);
-	glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-	glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)));
-	glDrawArrays(GL_TRIANGLES,0,6);
-	glDisableVertexAttribArray(col);
-	glDisableVertexAttribArray(index);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glUseProgram(0);
+		//Initialization of Variables for an instance of the
+		//laser sensor class. These variables will determine
+		//the scanning behavior(not scan pattern but other properties
+		//range, accuracy etc.)
 	
+
+		//Default Sampling and Azimuthal Frequency
+		_index=0;
+		_samplingFrequency = 5000;
+		_azimuthal_frequency = 5;
+		
+		//Near Plane Far Plane of the Camera
+		_znear = 1.0f;
+		_zfar = 10.0f;
+		
+		//Default Number of Scanlines
+		_scanLineIndex = 32;
+		_scanLines = 64;
+		_scanLineAdd=1;
+		
+		//Position of the Laser Sensor 
+		_CameraPosition[0] = 0.0f;
+		_CameraPosition[1] = 2.0f;
+		_CameraPosition[2] = 0.0f;
+
 }
 
+
+pcl::simulation::LaserSensor::~LaserSensor()
+{
+
+}
 
 /*
 *	This method renders the scene to the textures. Based on the camera location
@@ -42,7 +57,6 @@ void pcl::simulation::LaserSensor::generateData(void)
 */
 void  pcl::simulation::LaserSensor::renderSceneToDepthTexture(GLuint &dfbo, 
 																float lookAt[],
-																float CameraPosition[],
 																int texture_width, 
 																int texture_height,
 																Scene::Ptr scene_,
@@ -57,11 +71,11 @@ void  pcl::simulation::LaserSensor::renderSceneToDepthTexture(GLuint &dfbo,
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, znear, zfar);
+	glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, _znear, _zfar);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
-	gluLookAt(CameraPosition[0], CameraPosition[1], CameraPosition[2],
+	gluLookAt(_CameraPosition[0], _CameraPosition[1], _CameraPosition[2],
 			lookAt[0], lookAt[1], lookAt[2],
 			0.0f, 1.0f, 0.0f);
 	scene_->draw();
@@ -104,8 +118,10 @@ void pcl::simulation::LaserSensor::depthTextureToRealDepthValues(GLuint &dtextur
 
 		GLuint location_znear = glGetUniformLocation(ProgramId, "zNear");
 		GLuint location_zfar = glGetUniformLocation(ProgramId, "zFar");
-		glUniform1f(location_znear, znear);
-		glUniform1f(location_zfar, zfar);
+		GLuint textureLength = glGetUniformLocation(ProgramId, "textureLength");
+		glUniform1f(location_znear, _znear);
+		glUniform1f(location_zfar, _zfar);
+		glUniform1f(textureLength, texture_height);
 
 		GLenum err = glGetError();
 
@@ -215,45 +231,45 @@ void pcl::simulation::LaserSensor::generatetextures(GLuint &dtexture,
 
 /*
 This shader is for displaying the Scene(colour scene for reference).
-TODO: Remove path dependency for Vertex and Fragment Shader.
 */
 void pcl::simulation::LaserSensor::CreateShaders()
 {
     GLenum ErrorCheckValue = glGetError();
-     
+    
+	//Vertex Shader Initialization
     VertexShaderId = glCreateShader(GL_VERTEX_SHADER);
-	ifstream ifs("E:/sourabh/ocular robotics/pcl/simulation/tools/shader.vert");
-	std::string str( (std::istreambuf_iterator<char>(ifs) ),
-                       (std::istreambuf_iterator<char>()) );
+	ifstream ifs("shader.vert");
+	std::string str((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 	GLchar *cstr = new GLchar[str.size() + 1];
 	strcpy(cstr, str.c_str());
 	const GLchar *vertexShader = cstr;
-	
-	//cout<<"Vertex Shader : "<<endl;
-	//printf("%s\n",cstr);
 	glShaderSource(VertexShaderId, 1, &vertexShader, NULL);
     glCompileShader(VertexShaderId);
+
+
+	//Fragment Shader Initialization
     FragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-    ifstream ifsf("E:/sourabh/ocular robotics/pcl/simulation/tools/shader.frag");
-	std::string strf( (std::istreambuf_iterator<char>(ifsf) ),
-                       (std::istreambuf_iterator<char>() ) );
+    ifstream ifsf("shader.frag");
+	std::string strf((std::istreambuf_iterator<char>(ifsf)),(std::istreambuf_iterator<char>()));
 	GLchar *cstrf = new GLchar[strf.size() + 1];
 	strcpy(cstrf, strf.c_str());
 	const GLchar *fragmentShader = cstrf;
-
-	//cout<<"Fragment Shader : "<<endl;
-	//printf("%s\n",cstrf);
 	glShaderSource(FragmentShaderId, 1, &fragmentShader, NULL);
     glCompileShader(FragmentShaderId);
+
+
+	//Creating Final Program by Attaching both the shaders
     ProgramId = glCreateProgram();
         glAttachShader(ProgramId, VertexShaderId);
         glAttachShader(ProgramId, FragmentShaderId);
     glLinkProgram(ProgramId);
-   // glUseProgram(ProgramId);
+
 	cout<<"PROGRAM ID:"<<ProgramId<<" "<<VertexShaderId<<" "<<FragmentShaderId<<endl;
+
 	GLint status;
-	    glGetProgramiv (ProgramId, GL_LINK_STATUS, &status);
-		cout<<status<<endl;
+    glGetProgramiv (ProgramId, GL_LINK_STATUS, &status);
+
+	//If there is an error in creating Shader Program
     if (status == GL_FALSE)
     {
         GLint infoLogLength;
@@ -265,10 +281,10 @@ void pcl::simulation::LaserSensor::CreateShaders()
         delete[] strInfoLog;
     }
 
-	cout<<"error not reached"<<endl;
+
     ErrorCheckValue = glGetError();
     if (ErrorCheckValue != GL_NO_ERROR)
-    {
+    {								
         fprintf(
             stderr,
             "ERROR: Could not create the shaders: %s \n",
@@ -284,34 +300,111 @@ void pcl::simulation::LaserSensor::CreateShaders()
 
 
 void pcl::simulation::LaserSensor::generateRE0xPointCloudFullScan(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
 							int texture_width,
 							int texture_height,
-							float CameraPosition[],
 							float *points		
 							)
 {
+	_azimuthal_frequency = Azimuthal_Freq;
+	if(_scanLines != NumScanlines)
+	{
+		_scanLines = NumScanlines;
+		_scanLineIndex = 0;
+	}
+	
+	performScan(ScanPatternType::FULL_FIELD_SCAN, depth_texture_1, points, 35, -35, 0, 360);
+
+}
+
+
+
+
+void pcl::simulation::LaserSensor::generateRE0xPointCloudBoundedElevation(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
+							int texture_width,
+							int texture_height,
+							float *points,
+							float upperBound,
+							float lowerBound
+							)
+{
+	_azimuthal_frequency = Azimuthal_Freq;
+	if(_scanLines != NumScanlines)
+	{
+		_scanLines = NumScanlines;
+		_scanLineIndex = 0;
+	}
+
+	performScan(ScanPatternType::BOUNDED_ELEVATION_SCAN, depth_texture_1,  points, upperBound, lowerBound, 0, 360);
+
+}
+
+
+
+
+void pcl::simulation::LaserSensor::generateRE0xPointCloudRegionScan(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
+							int texture_width,
+							int texture_height,
+							float *points,
+							float upperBound,
+							float lowerBound,
+							float angularRight,
+							float angularLeft
+							)
+{
+	_azimuthal_frequency = Azimuthal_Freq;
+	if(_scanLines != NumScanlines)
+	{
+		_scanLines = NumScanlines;
+		_scanLineIndex = 0;
+	}
+
+	performScan(ScanPatternType::REGION_SCAN, depth_texture_1, points, upperBound, lowerBound, angularRight, angularLeft);
+
+}
+
+
+
+
+void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
+												GLuint final_depth_texture[],
+												float *points,
+												float upperBound,
+												float lowerBound,
+												float angularRight,
+												float angularLeft)
+{
+
 	//Get all the Textures 
 	// Texture 1: -45 to 45 degree
 	// Texture 2: 45 to 135 degree
 	// Texture 3: 135 to 225 degree
 	// Texture 4: 225 to 315 degree
-	GLint t_width1, t_height1, internalFormat1;
-	glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &internalFormat1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &t_width1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &t_height1);
+			
+	//Retrieving Texture Parameters
+	GLint texture_width, texture_height, internalFormat;
+	glBindTexture(GL_TEXTURE_2D, final_depth_texture[0]);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &internalFormat);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texture_width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texture_height);
 	
+	cout<<"GL_DEPTH_COMPONENT : "<<internalFormat<<endl;
 	GLuint numBytes=0;
-	switch(internalFormat1)
+	switch(internalFormat)
 	{
 		case GL_RGB:
-			numBytes = t_width1*t_height1*3;
+			numBytes = texture_width*texture_height*3;
 			break;
 		case GL_RGBA:
-			numBytes = t_width1*t_height1*4;
+			numBytes = texture_width*texture_height*4;
 			break;
 		case GL_DEPTH_COMPONENT:
-			numBytes = t_width1*t_height1;
+			numBytes = texture_width*texture_height;
 			break;
 		default:
 			break;
@@ -324,149 +417,173 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudFullScan(GLuint depth_t
 		unsigned char *pixels3 = new unsigned char[numBytes];
 		unsigned char *pixels4 = new unsigned char[numBytes];
 
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels);
+		glBindTexture(GL_TEXTURE_2D, final_depth_texture[0]);
+		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat, GL_UNSIGNED_BYTE, pixels);
 
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[1]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels2);
+		glBindTexture(GL_TEXTURE_2D, final_depth_texture[1]);
+		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat, GL_UNSIGNED_BYTE, pixels2);
 
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[2]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels3);
+		glBindTexture(GL_TEXTURE_2D, final_depth_texture[2]);
+		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat, GL_UNSIGNED_BYTE, pixels3);
 
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[3]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels4);
+		glBindTexture(GL_TEXTURE_2D, final_depth_texture[3]);
+		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat, GL_UNSIGNED_BYTE, pixels4);
 
 
 		//local Variables
-		int points_per_scanline = samplingFrequency/azimuthal_frequency;
+		int points_per_scanline = _samplingFrequency/_azimuthal_frequency;
 
-		//starting and ending Elevation of this scanline
+		//Starting and Ending Elevation of the current Scanline 
 		float scan_start_elevation, scan_end_elevation;
-		float elevation_range_per_scanline = 90.0/(float)scanLines;
+
+		//Range of the Current Scanline
+		float elevation_range_per_scanline = (upperBound - lowerBound)/(float)_scanLines;
 
 		//Maximum distance - farthest Point
 		float distance = 10.0;
 
-		float elevation_offset = 0.0, elevation_angle = 0.0, azimuthal_angle = 0.0, height_value, width_value;
-		float thetha = 0.0, cos_thetha = 0.0, sin_thetha = 0.0, phi = 0.0, cos_phi =0.0, sin_phi =0.0;
-		float direction[3], magnitude, point[3];
+		
+		
+		float elevation_angle = 0.0;
+		float elevation_offset = 0.0;
+		
+		float azimuthal_angle = 0.0;
+		float azimuthal_offset= 0.0;
+
+		//Height Value and Width value of a particular point in a texture
+		float height_value;
+		float width_value;
 
 
+		//Representing any sensed point in Spherical Coordinate System i.e. currently 
+		//intialization of variables related to Spherical Coordinate System
+		float thetha = 0.0, cos_thetha = 0.0, sin_thetha = 0.0;
+		float phi = 0.0, cos_phi =0.0, sin_phi =0.0;
+
+
+		
 		// To copy the data into a Byte Array for transfer over UDP
 		QByteArray UdpSensorData;
 	    QDataStream dStream(&UdpSensorData, QIODevice::WriteOnly);
 		int udpPointCounter = 0;
 
 
-		//scan_elevation = from top the starting elevation for spiral scan
-		scan_start_elevation = 45.0 - (elevation_range_per_scanline * scanLineIndex);		
-		scan_end_elevation = 45.0 - (elevation_range_per_scanline * (scanLineIndex+1));
+		char* udpData = new char[900];
+		
+		
+		if(_scanLineAdd==1)
+		{
+			scan_start_elevation = upperBound - (elevation_range_per_scanline * _scanLineIndex);		//scan_elevation = from top the starting elevation for spiral scan
+		}
+		else
+		{
+			scan_start_elevation = lowerBound + (elevation_range_per_scanline * (_scanLines-1-_scanLineIndex));
+		}
+
+		//To consider the case when we have to scan the region between 340 degree(angularRight) to 20 degree(angularLeft)
+		if(angularLeft<angularRight) angularLeft += 360;
 
 		for(int j=0; j<points_per_scanline; j++)
 		{
-			//Azimuthal offset of the Point
-			azimuthal_angle = 360.0*((float)j/(float)points_per_scanline);
-			//Elevation offset of the Point
+
+			
+			//Direction and location of the current Point
+			float direction[3], point[3];
+
+			//Since movement of the sensor is different azimuthally for Region Scam
+			if(scanMode == ScanPatternType::REGION_SCAN)
+			{
+				int jIndex = (j<(points_per_scanline/2)) ? j : (points_per_scanline - j);
+				azimuthal_offset = 2*(angularLeft-angularRight)*((float)jIndex/(float)points_per_scanline);
+			}
+			else
+			{
+				azimuthal_offset = 360.0*((float)j/(float)points_per_scanline);
+			}
+
+
+			//Calculating Azimuthal Angle of the Current Point
+			azimuthal_angle = angularRight + azimuthal_offset;
+			if(azimuthal_angle>360) azimuthal_angle = azimuthal_angle - 360;				//check if this condition is ever true
+
+
+			//Calculating Elevation Angle of the Current Point
 			elevation_offset = elevation_range_per_scanline*((float)j/(float)points_per_scanline);
-
-			if(scanLineAdd == 1) 
-				elevation_angle = scan_start_elevation - elevation_offset;	//moving from 45 to -45
-			else 
-				elevation_angle = scan_end_elevation + elevation_offset;
-
-			//thetha and phi in spherical frame of reference
+			elevation_angle = scan_start_elevation - (_scanLineAdd*elevation_offset);	//moving from 45 to -45
+			
+				
+			//Calculating Polar Angle and Azimuth Angle in Spherical Coordinate System
 			thetha = 90.0 - elevation_angle;
-			phi = azimuthal_angle;
-
 			cos_thetha = cos(thetha*PI/180.0);
 			sin_thetha = sin(thetha*PI/180.0);
+			phi = azimuthal_angle;
 			cos_phi = cos(phi*PI/180.0);
 			sin_phi = sin(phi*PI/180.0);
-
-			//direction b/w pixel pos and camera pos
-			direction[3];		
-
-			//if the point lies in texture 2
-			if(azimuthal_angle>=45.0 && azimuthal_angle<135.0)				//Texture 2
+			
+			if(azimuthal_angle>=45.0 && azimuthal_angle<135.0)				//texture 1
 			{
 				phi =  azimuthal_angle - 90;
 				cos_phi = cos(phi*PI/180.0);
 				sin_phi = sin(phi*PI/180.0);
 
-				//conversion of spherical coordinates to cubical texture and
-				//calculating final width and height value of pixel location
-				height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
+				height_value = (texture_height/2) + (texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
 				width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
 					
-				//Calculating the direction of the pixel
 				direction[0] = (2*(float)width_value/(float)texture_width - 1.0);
 				direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
 				direction[2] = -1.0f;
 
-				magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
+				float magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
 
 				direction[0] /= magnitude;
 				direction[1] /= magnitude;
 				direction[2] /= magnitude;
 
-				//value of texture at height_value and width_value
-				distance = (float)pixels[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
+				distance = (float)pixels[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
 
 			}
 
-			//if the point lies in Texture 3
-			else if (azimuthal_angle>=135.0 && azimuthal_angle<225.0)		//Texture 3
+			else if (azimuthal_angle>=135.0 && azimuthal_angle<225.0)		//texture 3
 			{
 				phi = azimuthal_angle - 180;
 				cos_phi = cos(phi*PI/180.0);
 				sin_phi = sin(phi*PI/180.0);
-				
-				//conversion of spherical coordinates to cubical texture and
-				//calculating final width and height value of pixel location
-				height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
+				height_value = (texture_height/2) + (texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
 				width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
 
-				//Calculating the direction of the pixel
 				direction[0] = -1.0f;
 				direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
 				direction[2] = (1.0f - 2*(float)width_value/(float)texture_width);
 
-				magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
+				float magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
 
 				direction[0] /= magnitude;
 				direction[1] /= magnitude;
 				direction[2] /= magnitude;
 
-				//value of texture at height_value and width_value
-				distance = (float)pixels3[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
+				distance = (float)pixels3[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
 
 			}
-
-			//if the point lies in Texture 4
-			else if (azimuthal_angle>=225.0 && azimuthal_angle<315.0)		//Texture 4
+			else if (azimuthal_angle>=225.0 && azimuthal_angle<315.0)		//texture 4
 			{
 				phi = azimuthal_angle - 270;
 				cos_phi = cos(phi*PI/180.0);
 				sin_phi = sin(phi*PI/180.0);
 
-				//conversion of spherical coordinates to cubical texture and
-				//calculating final width and height value of pixel location
-				height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
+				height_value = (texture_height/2) + (texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
 				width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-				
-				//Calculating the direction of the pixel
+					
 				direction[0] = (1.0 - 2*(float)width_value/(float)texture_width);
 				direction[1] = (2*(float)height_value/(float)texture_height - 1.0);
 				direction[2] = 1.0f;
 					
-				magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
+				float magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
 
 				direction[0] /= magnitude;
 				direction[1] /= magnitude;
 				direction[2] /= magnitude;
 
-				//value of texture at height_value and width_value
-				distance = (float)pixels4[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
+				distance = (float)pixels4[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
 
 			}
 			else
@@ -484,92 +601,103 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudFullScan(GLuint depth_t
 					sin_phi = sin(phi*PI/180.0);
 				}
 
-				//conversion of spherical coordinates to cubical texture and
-				//calculating final width and height value of pixel location
-				height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
+				height_value = (texture_height/2) + (texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
 				width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
 					
-				//Calculating the direction of the pixel
 				direction[0] = 1.0f;
 				direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
 				direction[2] = (2*(float)width_value/(float)texture_width-1.0f);
 					
-				magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
+				float magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
 
+
+				//Normalizing the direction
 				direction[0] /= magnitude;
 				direction[1] /= magnitude;
 				direction[2] /= magnitude;
 
-				//value of texture at height_value and width_value
-				distance = (float)pixels2[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
+				distance = (float)pixels2[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
 
 
 			}
 				
-			//if there is object at that particular location add a point,
-			//else there is no point for that coordinate
-			if(distance<(zfar-0.0001f))
+				
+			if(distance<(_zfar-0.0001f))
 			{
-				point[0] = CameraPosition[0] + distance*direction[0];
-				point[1] = CameraPosition[1] + distance*direction[1];
-				point[2] = CameraPosition[2] + distance*direction[2];
+			point[0] = _CameraPosition[0] + distance*direction[0];
+			point[1] = _CameraPosition[1] + distance*direction[1];
+			point[2] = _CameraPosition[2] + distance*direction[2];
 			}
 			else
 			{
 				point[0] = 0.0; point[1] = 0.0; point[2] = 0.0;
+				distance = 0.0;
 			}
 				
-			
-			//overwrite the points once it reaches the maximu value of the buffer
-			if(index>=100000)
+				
+			if(_index>=100000)
 			{
-				index=0;
-				points[3*index] = point[0];
-				points[3*index + 1] = point[1];
-				points[3*index + 2] = point[2];
+				_index=0;
+				points[3*_index] = point[0];
+				points[3*_index + 1] = point[1];
+				points[3*_index + 2] = point[2];
 
 			}
 			else{
-				points[3*index] = point[0];
-				points[3*index + 1] = point[1];
-				points[3*index + 2] = point[2];
+				points[3*_index] = point[0];
+				points[3*_index + 1] = point[1];
+				points[3*_index + 2] = point[2];
 			}
-			index++;		
+			_index++;		
 
 
-			//Send UDP packet for 100 points	
 			if(udpPointCounter<100)
 			{
-				dStream<<point[0];
-				dStream<<point[1];
-				dStream<<point[2];	
+				unsigned short azimuthAngle = (unsigned short)(azimuthal_angle*100);
+				short elevationAngle = (short)(elevation_angle*100);
+				unsigned short range = (unsigned short)(distance*1000);
+				char reserved = '-';
+				char intensity = '0';
+
+				
+				unsigned char pointData[8];
+				pointData[0] = 	azimuthAngle & 0xFF;
+				pointData[1] = 	(azimuthAngle>>8) & 0xFF;
+				pointData[2] = 	elevationAngle & 0xFF;
+				pointData[3] = 	(elevationAngle>>8) & 0xFF;
+				pointData[4] = 	range & 0xFF;
+				pointData[5] = 	(range>>8) & 0xFF;
+				pointData[6] = 	reserved;
+				pointData[7] = 	intensity;
+				
+
+
+				const char* pointDataChar = reinterpret_cast<const char*>(pointData);
+				
+				memcpy(&udpData[8*udpPointCounter], pointDataChar, 8);
 				udpPointCounter++;
+
 			}
 			else
 			{
-				sendData(UdpSensorData);
+				sendData(udpData, 800);
 				UdpSensorData.clear();
 				dStream.device()->reset();
+				
+
 				udpPointCounter = 0;
 			}
-				  
-		}
 
-		//if the sensor has reached topmost or bottommost angle
-		if(scanLineIndex>=scanLines-1)
-		{
-				scanLineAdd = -1 ;
+				
 		}
-		else if(scanLineIndex<=0) 
-		{
-				scanLineAdd = 1;
-		}
-		scanLineIndex+=scanLineAdd;
+		if(_scanLineIndex>=_scanLines-1)	_scanLineAdd = -1 ;
+		else if(_scanLineIndex<=0) _scanLineAdd = 1;
+		_scanLineIndex+=_scanLineAdd;
 
-		//send a packet for remaining points in the scanline
 		if(udpPointCounter!=0)
 		{
-			sendData(UdpSensorData);
+			//sendData(UdpSensorData); //emit signal
+			sendData(udpData, 800);
 			UdpSensorData.clear();
 			dStream.device()->reset();
 			udpPointCounter = 0;
@@ -579,573 +707,13 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudFullScan(GLuint depth_t
 		delete [] pixels2;
 		delete [] pixels3;
 		delete [] pixels4;
-															
-	}
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-
-
-
-void pcl::simulation::LaserSensor::generateRE0xPointCloudBoundedElevation(GLuint depth_texture_1[],
-							int texture_width,
-							int texture_height,
-							float CameraPosition[],
-							float *points,
-							float upperBound,
-							float lowerBound
-							)
-{
-	//Get all the Textures 
-	// Texture 1: -45 to 45 degree
-	// Texture 2: 45 to 135 degree
-	// Texture 3: 135 to 225 degree
-	// Texture 4: 225 to 315 degree
-	GLint t_width1, t_height1, internalFormat1;
-	glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &internalFormat1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &t_width1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &t_height1);
-	
-	cout<<"GL_DEPTH_COMPONENT : "<<internalFormat1<<endl;
-	GLuint numBytes=0;
-	switch(internalFormat1)
-	{
-		case GL_RGB:
-			numBytes = t_width1*t_height1*3;
-			break;
-		case GL_RGBA:
-			numBytes = t_width1*t_height1*4;
-			break;
-		case GL_DEPTH_COMPONENT:
-			numBytes = t_width1*t_height1;
-			break;
-		default:
-			break;
-	}
-
-	if(numBytes)
-	{
-		unsigned char *pixels = new unsigned char[numBytes];
-		unsigned char *pixels2 = new unsigned char[numBytes];
-		unsigned char *pixels3 = new unsigned char[numBytes];
-		unsigned char *pixels4 = new unsigned char[numBytes];
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[1]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels2);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[2]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels3);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[3]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels4);
-
-
-		//local Variables
-		 
-		int points_per_scanline = samplingFrequency/azimuthal_frequency;
-		float scan_start_elevation, scan_end_elevation;
-		float elevation_range_per_scanline = (upperBound - lowerBound)/(float)scanLines;
-		float distance = 10.0;
-		float angular_offset= 0.0, elevation_offset = 0.0, elevation_angle = 0.0, azimuthal_angle = 0.0, height_value, width_value;
-		float thetha = 0.0, cos_thetha = 0.0, sin_thetha = 0.0, phi = 0.0, cos_phi =0.0, sin_phi =0.0;
-		float direction[3], magnitude, point[3];
-
-		
-		
-		// To copy the data into a Byte Array for transfer over UDP
-		QByteArray UdpSensorData;
-	    QDataStream dStream(&UdpSensorData, QIODevice::WriteOnly);
-		int udpPointCounter = 0;
-
-		//for(int i=0; i<azimuthal_frequency; i++)
-		//{
-			scan_start_elevation = upperBound - (elevation_range_per_scanline * scanLineIndex);		//scan_elevation = from top the starting elevation for spiral scan
-			scan_end_elevation = upperBound - (elevation_range_per_scanline * (scanLineIndex+1));
-
-			for(int j=0; j<points_per_scanline; j++)
-			{
-				angular_offset = 360.0*((float)j/(float)points_per_scanline);
-				elevation_offset = elevation_range_per_scanline*((float)j/(float)points_per_scanline);
-
-				if(scanLineAdd == 1)
-				elevation_angle = scan_start_elevation - elevation_offset;	//moving from 45 to -45
-				else elevation_angle = scan_end_elevation + elevation_offset;
-
-
-				azimuthal_angle = angular_offset;
-				
-				thetha = 90.0 - elevation_angle;
-				cos_thetha = cos(thetha*PI/180.0);
-				sin_thetha = sin(thetha*PI/180.0);
-				
-				phi = azimuthal_angle;
-				cos_phi = cos(phi*PI/180.0);
-				sin_phi = sin(phi*PI/180.0);
-				direction[3];		//direction b/w pixel pos and camera pos
-				height_value, width_value ;
-
-				if(azimuthal_angle>=45.0 && azimuthal_angle<135.0)				//texture 1
-				{
-					phi =  azimuthal_angle - 90;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = (2*(float)width_value/(float)texture_width - 1.0);
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = -1.0f;
-
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-
-				else if (azimuthal_angle>=135.0 && azimuthal_angle<225.0)		//texture 3
-				{
-					phi = azimuthal_angle - 180;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-
-					direction[0] = -1.0f;
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = (1.0f - 2*(float)width_value/(float)texture_width);
-
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels3[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-				else if (azimuthal_angle>=225.0 && azimuthal_angle<315.0)		//texture 4
-				{
-					phi = azimuthal_angle - 270;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = (1.0 - 2*(float)width_value/(float)texture_width);
-					direction[1] = (2*(float)height_value/(float)texture_height - 1.0);
-					direction[2] = 1.0f;
-					
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels4[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-				else
-				{
-					if(azimuthal_angle>=315.0)
-					{
-						phi = azimuthal_angle - 360;
-						cos_phi = cos(phi*PI/180.0);
-						sin_phi = sin(phi*PI/180.0);
-					}
-					else if(azimuthal_angle>=0.0 && azimuthal_angle<45.0)
-					{
-						phi= azimuthal_angle;
-						cos_phi = cos(phi*PI/180.0);
-						sin_phi = sin(phi*PI/180.0);
-					}
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = 1.0f;
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = (2*(float)width_value/(float)texture_width-1.0f);
-					
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels2[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-
-				}
-				
-				
-				if(distance<(zfar-0.0001f))
-				{
-				point[0] = CameraPosition[0] + distance*direction[0];
-				point[1] = CameraPosition[1] + distance*direction[1];
-				point[2] = CameraPosition[2] + distance*direction[2];
-				}
-				else
-				{
-					point[0] = 0.0; point[1] = 0.0; point[2] = 0.0;
-				}
-				
-				
-				if(index>=100000)
-				{
-					index=0;
-					points[3*index] = point[0];
-					points[3*index + 1] = point[1];
-					points[3*index + 2] = point[2];
-
-				}
-				else{
-					points[3*index] = point[0];
-					points[3*index + 1] = point[1];
-					points[3*index + 2] = point[2];
-				}
-				index++;		
-				
-
-				if(udpPointCounter<100)
-				{
-					dStream<<point[0];
-					dStream<<point[1];
-					dStream<<point[2];	
-					udpPointCounter++;
-				}
-				else
-				{
-					sendData(UdpSensorData);
-					UdpSensorData.clear();
-					dStream.device()->reset();
-					udpPointCounter = 0;
-				}
-
-			}
-			if(scanLineIndex>=scanLines-1)	scanLineAdd = -1 ;
-			else if(scanLineIndex<=0) scanLineAdd = 1;
-			scanLineIndex+=scanLineAdd;
-
-			if(udpPointCounter!=0)
-			{
-				sendData(UdpSensorData);
-				UdpSensorData.clear();
-				dStream.device()->reset();
-				udpPointCounter = 0;
-			}
-
-		delete [] pixels;
-		delete [] pixels2;
-		delete [] pixels3;
-		delete [] pixels4;
 
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 
-
-
-void pcl::simulation::LaserSensor::generateRE0xPointCloudRegionScan(GLuint depth_texture_1[],
-							int texture_width,
-							int texture_height,
-							float CameraPosition[],
-							float *points,
-							float upperBound,
-							float lowerBound,
-							float angularRight,
-							float angularLeft
-							)
+void pcl::simulation::LaserSensor::startClock()
 {
-	//Get all the Textures 
-	// Texture 1: -45 to 45 degree
-	// Texture 2: 45 to 135 degree
-	// Texture 3: 135 to 225 degree
-	// Texture 4: 225 to 315 degree
-	GLint t_width1, t_height1, internalFormat1;
-	glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &internalFormat1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &t_width1);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &t_height1);
-	
-	cout<<"GL_DEPTH_COMPONENT : "<<internalFormat1<<endl;
-	GLuint numBytes=0;
-	switch(internalFormat1)
-	{
-		case GL_RGB:
-			numBytes = t_width1*t_height1*3;
-			break;
-		case GL_RGBA:
-			numBytes = t_width1*t_height1*4;
-			break;
-		case GL_DEPTH_COMPONENT:
-			numBytes = t_width1*t_height1;
-			break;
-		default:
-			break;
-	}
-
-	if(numBytes)
-	{
-		unsigned char *pixels = new unsigned char[numBytes];
-		unsigned char *pixels2 = new unsigned char[numBytes];
-		unsigned char *pixels3 = new unsigned char[numBytes];
-		unsigned char *pixels4 = new unsigned char[numBytes];
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[0]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[1]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels2);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[2]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels3);
-
-		glBindTexture(GL_TEXTURE_2D, depth_texture_1[3]);
-		glGetTexImage(GL_TEXTURE_2D, 0, internalFormat1, GL_UNSIGNED_BYTE, pixels4);
-
-
-		//local Variables
-		 
-		int points_per_scanline = samplingFrequency/azimuthal_frequency;
-		float scan_start_elevation, scan_end_elevation;
-		float elevation_range_per_scanline = (upperBound - lowerBound)/(float)scanLines;
-		float distance = 10.0;
-		float angular_offset= 0.0, elevation_offset = 0.0, elevation_angle = 0.0, azimuthal_angle = angularRight, height_value, width_value;
-		float thetha = 0.0, cos_thetha = 0.0, sin_thetha = 0.0, phi = 0.0, cos_phi =0.0, sin_phi =0.0;
-		float direction[3], magnitude, point[3];
-
-		
-		// To copy the data into a Byte Array for transfer over UDP
-		QByteArray UdpSensorData;
-	    QDataStream dStream(&UdpSensorData, QIODevice::WriteOnly);
-		int udpPointCounter = 0;
-		
-		//for(int i=0; i<azimuthal_frequency; i++)
-		//{
-			scan_start_elevation = upperBound - (elevation_range_per_scanline * scanLineIndex);		//scan_elevation = from top the starting elevation for spiral scan
-			scan_end_elevation = 45.0 - (elevation_range_per_scanline * (scanLineIndex+1));
-
-			for(int j=0; j<points_per_scanline; j++)
-			{
-				int jIndex = (j<(points_per_scanline/2)) ? j : (points_per_scanline - j);
-				angular_offset = 2*(angularLeft-angularRight)*((float)jIndex/(float)points_per_scanline);
-				elevation_offset = elevation_range_per_scanline*((float)j/(float)points_per_scanline);
-
-				elevation_angle = scan_start_elevation - elevation_offset;	//moving from 45 to -45
-				azimuthal_angle = angularRight + angular_offset;
-				
-				thetha = 90.0 - elevation_angle;
-				cos_thetha = cos(thetha*PI/180.0);
-				sin_thetha = sin(thetha*PI/180.0);
-				
-				if(azimuthal_angle<0) azimuthal_angle = 360 + azimuthal_angle;
-
-				phi = azimuthal_angle;
-				cos_phi = cos(phi*PI/180.0);
-				sin_phi = sin(phi*PI/180.0);
-				direction[3];		//direction b/w pixel pos and camera pos
-				height_value, width_value ;
-
-				if(azimuthal_angle>=45.0 && azimuthal_angle<135.0)				//texture 1
-				{
-					phi =  azimuthal_angle - 90;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = (2*(float)width_value/(float)texture_width - 1.0);
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = -1.0f;
-
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-
-				else if (azimuthal_angle>=135.0 && azimuthal_angle<225.0)		//texture 3
-				{
-					phi = azimuthal_angle - 180;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-
-					direction[0] = -1.0f;
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = (1.0f - 2*(float)width_value/(float)texture_width);
-
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels3[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-				else if (azimuthal_angle>=225.0 && azimuthal_angle<315.0)		//texture 4
-				{
-					phi = azimuthal_angle - 270;
-					cos_phi = cos(phi*PI/180.0);
-					sin_phi = sin(phi*PI/180.0);
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = (1.0 - 2*(float)width_value/(float)texture_width);
-					direction[1] = (2*(float)height_value/(float)texture_height - 1.0);
-					direction[2] = 1.0f;
-					
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels4[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-				}
-				else
-				{
-					if(azimuthal_angle>=315.0)
-					{
-						phi = azimuthal_angle - 360;
-						cos_phi = cos(phi*PI/180.0);
-						sin_phi = sin(phi*PI/180.0);
-					}
-					else if(azimuthal_angle>=0.0 && azimuthal_angle<45.0)
-					{
-						phi= azimuthal_angle;
-						cos_phi = cos(phi*PI/180.0);
-						sin_phi = sin(phi*PI/180.0);
-					}
-
-					height_value = (texture_height/2) + 0.707*(texture_height/2)*(cos_thetha/sin_thetha)*(1/cos_phi);
-					width_value = (texture_width/2) - (texture_width/2)*(sin_phi/cos_phi);
-					
-					direction[0] = 1.0f;
-					direction[1] = (2*(float)height_value/(float)texture_height  - 1.0);
-					direction[2] = (2*(float)width_value/(float)texture_width-1.0f);
-					
-					magnitude = sqrt(direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2]);
-
-					direction[0] /= magnitude;
-					direction[1] /= magnitude;
-					direction[2] /= magnitude;
-
-					distance = (float)pixels2[3*(int)height_value*t_width1 + 3*(int)width_value]*zfar/ 255.0;
-
-
-				}
-				
-				
-				if(distance<(zfar-0.0001f))
-				{
-				point[0] = CameraPosition[0] + distance*direction[0];
-				point[1] = CameraPosition[1] + distance*direction[1];
-				point[2] = CameraPosition[2] + distance*direction[2];
-				}
-				else
-				{
-					point[0] = 0.0; point[1] = 0.0; point[2] = 0.0;
-				}
-				
-				
-				if(index>=100000)
-				{
-					index=0;
-					points[3*index] = point[0];
-					points[3*index + 1] = point[1];
-					points[3*index + 2] = point[2];
-
-				}
-				else{
-					points[3*index] = point[0];
-					points[3*index + 1] = point[1];
-					points[3*index + 2] = point[2];
-				}
-				index++;		
-
-
-				if(udpPointCounter<100)
-				{
-					dStream<<point[0];
-					dStream<<point[1];
-					dStream<<point[2];	
-					udpPointCounter++;
-				}
-				else
-				{
-					sendData(UdpSensorData);
-					UdpSensorData.clear();
-					dStream.device()->reset();
-					udpPointCounter = 0;
-				}
-
-				
-			}
-			if(scanLineIndex>=scanLines-1)	scanLineAdd = -1 ;
-			else if(scanLineIndex<=0) scanLineAdd = 1;
-			scanLineIndex+=scanLineAdd;
-
-			if(udpPointCounter!=0)
-			{
-				sendData(UdpSensorData);
-				UdpSensorData.clear();
-				dStream.device()->reset();
-				udpPointCounter = 0;
-			}
-		//}
-
-		delete [] pixels;
-		delete [] pixels2;
-		delete [] pixels3;
-		delete [] pixels4;
-
-	}
-	glBindTexture(GL_TEXTURE_2D, 0);
-	//cout<<"numBytes : "<<numBytes<<endl;
-	//cout<<"getPointCloud executed"<<endl;
-
+	//Start the Sensor Clock 60MHz
 }
-
-
-
-void pcl::simulation::LaserSensor::initialize_()
-{
-	socket_ = new QUdpSocket(this);
-}
-
-
-void pcl::simulation::LaserSensor::sendData(QByteArray data)
-{	
-	QString dataString = "";
-
-	dataString.append(data);
-
-	sendData(dataString);
-
-	int bytesWritten = socket_->writeDatagram(data, LOCALHOST_IP, LOCALHHOST_PORT);
-	int size = data.size();
-	data.clear();
-}
-
-

@@ -18,3 +18,5 @@ ConsoleWindow::~ConsoleWindow()
 {
     delete ui;
 }
+
+

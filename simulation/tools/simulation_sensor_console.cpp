@@ -15,12 +15,12 @@ int main(int argc, char *argv[])
 
     window.setWindowTitle("Laser Sensor Console Window");
 
-	
+					/*
     if (((float)widgetArea / (float)desktopArea) < 0.75f)
         window.show();
     else
         window.showMaximized();
-	 
+	 				  */
     return app.exec();
 }
 

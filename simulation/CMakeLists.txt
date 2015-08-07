@@ -41,6 +41,7 @@ if(build)
          src/sum_reduce.cpp
          src/laser_sensor.cpp
 		 src/laser_sensor_wrapper.cpp
+		 src/laser_sensor_udp_interface.cpp
         )
 
     set(incs 
@@ -52,7 +53,9 @@ if(build)
         "include/pcl/${SUBSYS_NAME}/sum_reduce.h"
         "include/pcl/${SUBSYS_NAME}/laser_sensor.h"
 		"include/pcl/${SUBSYS_NAME}/laser_sensor_wrapper.h"
+		"include/pcl/${SUBSYS_NAME}/laser_sensor_udp_interface.h"
         )
+
 
 
 	

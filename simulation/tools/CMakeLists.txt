@@ -130,20 +130,19 @@ if(GLEW_FOUND)
 
 
 		
-	
 	#Change Later to add this directly from Simulation_library CMakeList
 	set (SHADER_FILE_DIRECTORY ${CMAKE_SOURCE_DIR}/simulation/src)
-	set (SHADER_BINARY_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+	set (SHADER_BINARY_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/)
 	MESSAGE("${SHADER_FILE_DIRECTORY}")
 	MESSAGE("${SHADER_BINARY_DIRECTORY}")
 
-	add_custom_command(TARGET pcl_simulation_sensor 
-						POST_BUILD 
-						COMMAND ${CMAKE_COMMAND} -E copy ${SHADER_FILE_DIRECTORY}/shader.vert ${CMAKE_CURRENT_BINARY_DIR})
+	add_custom_command(TARGET pcl_simulation_sensor_console 
+						PRE_BUILD 
+						COMMAND ${CMAKE_COMMAND} -E copy ${SHADER_FILE_DIRECTORY}/shader.vert ${SHADER_BINARY_DIRECTORY})
 						
-	add_custom_command(TARGET pcl_simulation_sensor 
-						POST_BUILD 
-						COMMAND ${CMAKE_COMMAND} -E copy ${SHADER_FILE_DIRECTORY}/shader.frag ${CMAKE_CURRENT_BINARY_DIR})
+	add_custom_command(TARGET pcl_simulation_sensor_console 
+						PRE_BUILD 
+						COMMAND ${CMAKE_COMMAND} -E copy ${SHADER_FILE_DIRECTORY}/shader.frag ${SHADER_BINARY_DIRECTORY})
 
   endif(GLUT_FOUND)
 endif (GLEW_FOUND)

@@ -19,6 +19,7 @@ public:
     explicit ConsoleWindow(QWidget *parent = 0);
     ~ConsoleWindow();
 
+
 private:
     Ui::ConsoleWindow *ui;
 

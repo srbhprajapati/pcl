@@ -46,68 +46,23 @@ namespace pcl
 		{
 			Q_OBJECT
 			public:
-				
-				//Total number of scanlines
-				int scanLines;
-				
-				//Frequency at which the sensor is sampling points
-				int samplingFrequency;
 
-				//Shader IDs for the OpenGL rendering - should be private
-				GLuint ProgramId, VertexShaderId, FragmentShaderId;
 
-				//Near Plane, Far Plane - don't know azimuth angle
-				float znear, zfar, main_azimuthal_angle;
-
-				//should be private
-				int index;
-
-				//frequency at which the sensor is rotating its head
-				int azimuthal_frequency;
+				enum ScanPatternType{
+					FULL_FIELD_SCAN,
+					BOUNDED_ELEVATION_SCAN,
+					REGION_SCAN
+				};
 
 				
-				//scanLineAdd - Whether the sensor is moving from top to bottom
-				//				or bottom to top				
-				int scanLineIndex, scanLineAdd;
-
-				//Laser sensor Position from where we are sensing the environment
-				float CameraPosition[3];
 				
-				LaserSensor()
-				{
-					//Initialization of Variables for an instance of the
-					//laser sensor class. These variables will determine
-					//the scanning behavior(not scan pattern but other properties
-					//range, accuracy etc.)
-					index=0;
-					scanLineIndex = 32;
-					znear = 1.0f;
-					zfar = 10.0f;
-					scanLines = 64;
-					scanLineAdd=1;
-					samplingFrequency = 5000;
-					azimuthal_frequency = 5;
-					main_azimuthal_angle = 0.0;
-					CameraPosition[0] = 0.0f;
-					CameraPosition[1] = 2.0f;
-					CameraPosition[2] = 0.0f;
+				//Constructor
+				LaserSensor();
 
-					initialize_();
-
-				}
+				//Destructor
+				~LaserSensor();
 				
 
-				/*
-				Set the window size for which the Depth map needs to be generated.
-				Sets the height and width of the depth map.
-				*/
-				void setSensorWindow(int height, int width){width_ = width; height_ = height;}
-				
-				/*
-				Sets the position(x,y,z) of the sensor in 3D Space.
-				*/
-				void setSensorPosition(float xpos, float ypos, float zpos){xpos_ = xpos; ypos_ = ypos; zpos_ = zpos;}
-				
 
 				/* Renders the scene to Depth Texture using 'Render to Texture' feature 
 				   of OpenGL. This function creates depth textures relative to the current
@@ -118,7 +73,6 @@ namespace pcl
 				   */
 				void renderSceneToDepthTexture(GLuint &dfbo, 
 												float lookAt[],
-												float CameraPosition[],
 												int texture_width, 
 												int texture_height,
 												Scene::Ptr scene_,
@@ -160,23 +114,14 @@ namespace pcl
 				void CreateShaders();
 
 
-
-				//Not used I think - Check again				
-				/*void getPointCloud(GLuint &dtexture_1, 
-									int index,
-									int texture_width,
-									int texture_height,
-									float CameraPosition[],
-									float *points);
-*/
-
 				/*
 					Returns the Point Cloud for Full Field Scan Pattern
 				*/
 				void generateRE0xPointCloudFullScan(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
 							int texture_width,
 							int texture_height,
-							float CameraPosition[],
 							float *points		
 							);
 
@@ -185,9 +130,10 @@ namespace pcl
 					Returns the Point Cloud for Bounded Elevation Scan Pattern
 				*/
 				void generateRE0xPointCloudBoundedElevation(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
 							int texture_width,
 							int texture_height,
-							float CameraPosition[],
 							float *points,
 							float upperBound,
 							float lowerBound
@@ -197,9 +143,10 @@ namespace pcl
 					Returns the Point Cloud for Region Scan Pattern
 				*/
 				void generateRE0xPointCloudRegionScan(GLuint depth_texture_1[],
+							int Azimuthal_Freq,
+							int NumScanlines,
 							int texture_width,
 							int texture_height,
-							float CameraPosition[],
 							float *points,
 							float upperBound,
 							float lowerBound,
@@ -208,50 +155,81 @@ namespace pcl
 							);
 
 
-
 				
 				/*
-					Display Message
+				Set the window size for which the Depth map needs to be generated.
+				Sets the height and width of the depth map.
 				*/
-				void printMessage(void) {cout<<"laser sensor printf working"<<endl;}
-				
+				void setSensorWindow(int height, int width){_width = width; _height = height;}
 				
 				/*
-				Initialize the sensor to setup the sensor in the 3D space.
-				Defines the vertex and Fragment shader for the sensor. Ray marching for
-				the generation of sensor data is performed in Fragment Shader
+				Sets the position(x,y,z) of the sensor in 3D Space.
 				*/
-				//void initSensor(void);
-
-				/*
-				Main depth Map display Loop:
-				Generate Depth map and display it on the OpenGL Window.
-				*/
-				void generateData(void);
+				void setSensorPosition(float xpos, float ypos, float zpos){_CameraPosition[0] = xpos; _CameraPosition[1] = ypos; _CameraPosition[2] = zpos;}
 				
 
 				/*
-					Sending the Point Cloud Data to the Client over UDP.
-				*/				
-				void sendData(QByteArray data);
+				Returns the position(x,y,z) of the sensor in 3D Space.
+				*/
+				float* getSensorPosition(){return _CameraPosition;}
+
+				void setSamplingFrequency(int freq){ _samplingFrequency = freq;}
+
+				void startClock();
+				
 
 			signals:
-				void sendData(QString packetToBeSent);		
+				//void sendData(QByteArray packetToBeSent);		
+				void sendData(char* data, int length);		
 
 			private:
 			
-			int width_;
-			int height_;
-			float xpos_;
-			float ypos_;
-			float zpos_;
-			
-			QUdpSocket *socket_;
+				int _width;
+				int _height;
+				float _xpos;
+				float _ypos;
+				float _zpos;
 
-			/*
-			Intialize the sensor for UDP Transfer
-			*/
-			void initialize_();
+				
+				//should be private
+				int _index;
+
+				
+				//scanLineAdd - Whether the sensor is moving from top to bottom
+				//				or bottom to top				
+				int _scanLineIndex, _scanLineAdd;
+
+				
+				//Laser sensor Position from where we are sensing the environment
+				float _CameraPosition[3];
+				
+				
+				//Total number of scanlines
+				int _scanLines;
+				
+				//Frequency at which the sensor is sampling points
+				int _samplingFrequency;
+
+				//Shader IDs for the OpenGL rendering - should be private
+				GLuint _ProgramId, _VertexShaderId, _FragmentShaderId;
+
+				//Near Plane, Far Plane - don't know azimuth angle
+				float _znear, _zfar;
+
+				//frequency at which the sensor is rotating its head
+				int _azimuthal_frequency;
+
+			
+
+				void performScan(ScanPatternType scanMode,
+								GLuint depth_texture_1[],
+								float *points,
+								float upperBound,
+								float lowerBound,
+								float angularRight,
+								float angularLeft
+								);
+
 
 		};
 	}
