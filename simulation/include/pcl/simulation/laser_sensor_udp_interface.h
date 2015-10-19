@@ -52,6 +52,8 @@ namespace pcl
 				//void sendData(QByteArray data);
 				void sendData(char* data, int length);
 
+				void sendAcknowledgement(char* ack);
+
 
 			private:
 				//socket for writing UDP packets

@@ -2,8 +2,10 @@
 #include <fstream>
 #include <cstring>
 #include <QDebug>
-
 #include <pcl/simulation/laser_sensor_udp_interface.h>
+
+#define SENDING_PORT 1235
+#define SENDING_IP	QHostAddress::LocalHost
 
 using namespace std;
 
@@ -16,7 +18,7 @@ pcl::simulation::LaserSensorUdpInterface::LaserSensorUdpInterface()
 
 pcl::simulation::LaserSensorUdpInterface::~LaserSensorUdpInterface()
 {
-
+	socket->~QUdpSocket();
 }
 
 
@@ -61,10 +63,22 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 
 			emit startLaser(sampling_frequency);
 			//ui->widget->start_laser(Azimuthal_value, Scanline_value);
+
+			//send Acknowledgement
+			char* ackPacket = new char[6];
+			memcpy(ackPacket, "EARNLS", 6);
+			sendAcknowledgement(ackPacket);
+
+
 		}
 		else if(packetHeader.compare("RESTLS")==0)//stop sensor
 		{
 			emit stopLaser();
+
+			//send Acknowledgement
+			char* ackPacket = new char[6];
+			memcpy(ackPacket, "EASTLS", 6);
+			sendAcknowledgement(ackPacket);
 		}
 		else if(packetHeader.compare("RESFFS")==0)//Full field scan
 		{
@@ -77,6 +91,11 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			if(azimuthalValue>0 && azimuthalValue<16 && scanlineValue>0)
 			{
 				emit startFullFieldScan((int)azimuthalValue, (int)scanlineValue);
+
+				//send Acknowledgement
+				char* ackPacket = new char[6];
+				memcpy(ackPacket, "EASFFS", 6);
+				sendAcknowledgement(ackPacket);
 			}
 			else
 			{
@@ -100,6 +119,11 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			if(azimuthalValue>0 && azimuthalValue<16 && scanlineValue>0 && upper_bound<45.0 && lower_bound>-45.0)
 			{
 				emit startBoundedElevationScan((int)azimuthalValue, (int)scanlineValue, upper_bound, lower_bound);
+
+				//send Acknowledgement
+				char* ackPacket = new char[6];
+				memcpy(ackPacket, "EASBES", 6);
+				sendAcknowledgement(ackPacket);
 			}
 			else
 			{
@@ -143,6 +167,11 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			if(azimuthalValue>0 && azimuthalValue<16 && scanlineValue>0 && upper_bound<45.0 && lower_bound>-45.0 && lAngular>0 && rAngular>0)
 			{
 				emit startRegionScan(azimuthalValue, scanlineValue, upper_bound, lower_bound, lAngular, rAngular);
+
+				//send Acknowledgement
+				char* ackPacket = new char[6];
+				memcpy(ackPacket, "EASRES", 6);
+				sendAcknowledgement(ackPacket);
 			}
 			else
 			{
@@ -170,6 +199,7 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			std::string path(constPathPointer, datagram.size()-6);
 
 			emit changeModel(QString::fromStdString(path));
+
 		}
 		else if(packetHeader.compare("RESVMD")==0)
 		{
@@ -189,16 +219,25 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 
 }
 
-
-//void pcl::simulation::LaserSensorUdpInterface::sendData(QByteArray data)
 void pcl::simulation::LaserSensorUdpInterface::sendData(char* data, int length)
 {
 	
 	const char* finalData = data;
 
-	//qDebug()<<"Inside SendData at LaserSensorUdpInterface";
+	int bytesWritten = socket->writeDatagram(finalData, length, SENDING_IP, SENDING_PORT);
 
-	int bytesWritten = socket->writeDatagram(finalData, length, QHostAddress::LocalHost, 1235);
+    if(bytesWritten==-1) 
+	{
+		qDebug()<<"Error Sending Point Data to the Client";
+	}
+}
+
+void pcl::simulation::LaserSensorUdpInterface::sendAcknowledgement(char* ack)
+{
+	
+	const char* finalData = ack;
+
+	int bytesWritten = socket->writeDatagram(finalData, 6, SENDING_IP, SENDING_PORT);
 
     if(bytesWritten==-1) 
 	{

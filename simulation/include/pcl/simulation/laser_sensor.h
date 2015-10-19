@@ -73,6 +73,7 @@ namespace pcl
 				   */
 				void renderSceneToDepthTexture(GLuint &dfbo, 
 												float lookAt[],
+												float upDirection[],
 												int texture_width, 
 												int texture_height,
 												Scene::Ptr scene_,
@@ -98,13 +99,18 @@ namespace pcl
 				/*
 				 *	Method for generating textures (Scene Depth Texture and Offset Texture) 
 				 *	for scene rendering.
-				 */
-				void generatetextures(GLuint &dtexture, 
-										GLuint &dtexture_1, 
-										GLuint &dfbo, 
-										GLuint &dfbo_1,
-										int texture_width,
-										int texture_height);
+				 */													 
+				void generateOffsetTextures(GLuint &dtexture_offset, 
+											GLuint &dfbo_offset,
+											int texture_width,
+											int texture_height);
+
+
+				
+				void generateRenderingDepthTextures(GLuint &dtexture, 
+													GLuint &dfbo,
+													int texture_width,
+													int texture_height);
 
 
 
@@ -117,7 +123,7 @@ namespace pcl
 				/*
 					Returns the Point Cloud for Full Field Scan Pattern
 				*/
-				void generateRE0xPointCloudFullScan(GLuint depth_texture_1[],
+				void generateRE0xPointCloudFullScan(GLuint final_depth_texture_fbo[],
 							int Azimuthal_Freq,
 							int NumScanlines,
 							int texture_width,
@@ -129,7 +135,7 @@ namespace pcl
 				/*
 					Returns the Point Cloud for Bounded Elevation Scan Pattern
 				*/
-				void generateRE0xPointCloudBoundedElevation(GLuint depth_texture_1[],
+				void generateRE0xPointCloudBoundedElevation(GLuint final_depth_texture_fbo[],
 							int Azimuthal_Freq,
 							int NumScanlines,
 							int texture_width,
@@ -142,7 +148,7 @@ namespace pcl
 				/*
 					Returns the Point Cloud for Region Scan Pattern
 				*/
-				void generateRE0xPointCloudRegionScan(GLuint depth_texture_1[],
+				void generateRE0xPointCloudRegionScan(GLuint final_depth_texture_fbo[],
 							int Azimuthal_Freq,
 							int NumScanlines,
 							int texture_width,
@@ -173,6 +179,14 @@ namespace pcl
 				*/
 				float* getSensorPosition(){return _CameraPosition;}
 
+
+				/*
+				Returns the Orientation(roll,pitch,yaw) of the sensor in 3D Space.
+				*/
+				float* getSensorOrientation(){return _CameraOrientation;}
+
+
+
 				void setSamplingFrequency(int freq){ _samplingFrequency = freq;}
 
 				void startClock();
@@ -186,9 +200,6 @@ namespace pcl
 			
 				int _width;
 				int _height;
-				float _xpos;
-				float _ypos;
-				float _zpos;
 
 				
 				//should be private
@@ -202,6 +213,9 @@ namespace pcl
 				
 				//Laser sensor Position from where we are sensing the environment
 				float _CameraPosition[3];
+
+				//Laser Sensor Orientation - Roll, Pitch, Yaw
+				float _CameraOrientation[3];
 				
 				
 				//Total number of scanlines
@@ -222,13 +236,15 @@ namespace pcl
 			
 
 				void performScan(ScanPatternType scanMode,
-								GLuint depth_texture_1[],
+								GLuint final_depth_texture_fbo[],
 								float *points,
 								float upperBound,
 								float lowerBound,
 								float angularRight,
 								float angularLeft
 								);
+
+				
 
 
 		};

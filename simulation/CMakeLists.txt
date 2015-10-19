@@ -98,8 +98,7 @@ if(build)
 										${GLEW_LIBRARIES} 
 										${QT_LIBRARIES} 
 										Qt5::Core 
-										Qt5::Network
-										${VTK_IO_TARGET_LINK_LIBRARIES})
+										Qt5::Network)
 			  
 
 						  

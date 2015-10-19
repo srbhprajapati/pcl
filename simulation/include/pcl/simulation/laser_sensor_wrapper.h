@@ -2,8 +2,8 @@
 #define _LASER_SENSOR_WRAPPER_H_
 
 
-#define TEXTURE_WIDTH 1600
-#define TEXTURE_HEIGHT 1600
+#define TEXTURE_WIDTH 9000
+#define TEXTURE_HEIGHT 9000
 #define MAXIMUM_POINTS 100000
 
 
@@ -76,6 +76,10 @@ namespace pcl
 				void saveModel(QString path);
 
 
+				//multiply any vector to the current Rotational Matrix
+				void multiplyRotationalMatrix(float *inVec, float *outVec);
+
+
 				void update();
 
 			private:
@@ -83,7 +87,8 @@ namespace pcl
 				//Loading OBJ and PLY model for simulating the scene
 				void load_PolygonMesh_model (char* polygon_file);
 	
-
+				
+				void reRenderScene();
 				
 				GLuint VBO;
 
@@ -105,7 +110,7 @@ namespace pcl
 				LaserSensor *ls1;
 
 				//Defining the textures on which the the scene needs to be rendered
-				GLuint depth_texture[4], depth_texture_1[4], fbo_[4] , fbo_1[4];
+				GLuint depth_texture, depth_texture_1[4], fbo_ , fbo_1[4];
 	
 				//Scan Pattern Type
 				char scanPatternType;

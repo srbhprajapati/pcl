@@ -1,6 +1,10 @@
 #include <pcl/simulation/laser_sensor_wrapper.h>
 #include <iostream>
 #include <QtWidgets>
+#include <ctime>
+#include <cmath>
+
+using namespace std;
 
 using namespace pcl::simulation;
 
@@ -45,9 +49,9 @@ LaserSensorWrapper::LaserSensorWrapper(QWidget *parent) :
 
 
 	QObject::connect(_udp, 
-					 SIGNAL(startLaser(int, int)), 
+					 SIGNAL(startLaser(int)), 
 					 this, 
-					 SLOT(startSensor(int, int)));
+					 SLOT(startSensor(int)));
 
 	QObject::connect(_udp, 
 					 SIGNAL(startFullFieldScan(int, int)), 
@@ -150,10 +154,16 @@ float f[] =	{1.0, 1.0, 0.0, 1.0, 1.0,
 	load_PolygonMesh_model("E:/dataset/file.obj");
 	
 
-	ls1->generatetextures(depth_texture[0], depth_texture_1[0], fbo_[0], fbo_1[0], texture_width, texture_height);
-	ls1->generatetextures(depth_texture[1], depth_texture_1[1], fbo_[1], fbo_1[1], texture_width, texture_height);
-	ls1->generatetextures(depth_texture[2], depth_texture_1[2], fbo_[2], fbo_1[2], texture_width, texture_height);
-	ls1->generatetextures(depth_texture[3], depth_texture_1[3], fbo_[3], fbo_1[3], texture_width, texture_height);
+	ls1->generateRenderingDepthTextures(depth_texture, fbo_, texture_width, texture_height);
+
+	ls1->generateOffsetTextures(depth_texture_1[0], fbo_1[0], texture_width, texture_height);
+	ls1->generateOffsetTextures(depth_texture_1[1], fbo_1[1], texture_width, texture_height);
+	ls1->generateOffsetTextures(depth_texture_1[2], fbo_1[2], texture_width, texture_height);
+	ls1->generateOffsetTextures(depth_texture_1[3], fbo_1[3], texture_width, texture_height);
+
+
+
+
 	cout<<"textures generated"<<endl;
 
 	glGenBuffers(1, &VBO);
@@ -162,24 +172,62 @@ float f[] =	{1.0, 1.0, 0.0, 1.0, 1.0,
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	float* SensorPosition = ls1->getSensorPosition();
-	float lookAt1[3], lookAt2[3], lookAt3[3], lookAt4[3];
-	lookAt1[0] = SensorPosition[0] + 0.0; lookAt1[1] = SensorPosition[1] + 0.0; lookAt1[2] = SensorPosition[2] - 1.0;
-	lookAt2[0] = SensorPosition[0] + 1.0; lookAt2[1] = SensorPosition[1] + 0.0; lookAt2[2] = SensorPosition[2] + 0.0;
-	lookAt3[0] = SensorPosition[0] - 1.0; lookAt3[1] = SensorPosition[1] + 0.0; lookAt3[2] = SensorPosition[2] + 0.0;
-	lookAt4[0] = SensorPosition[0] + 0.0; lookAt4[1] = SensorPosition[1] + 0.0; lookAt4[2] = SensorPosition[2] + 1.0;
+	float lookAt1[3], lookAt2[3], lookAt3[3], lookAt4[3];															  
+
+	float dir1[3], rotatedDir1[3];
+	dir1[0] = 0.0; dir1[1] = 0.0; dir1[2] = -1.0; 
+	multiplyRotationalMatrix(&dir1[0], &rotatedDir1[0]);
+	lookAt1[0] = SensorPosition[0] + rotatedDir1[0]; lookAt1[1] = SensorPosition[1] + rotatedDir1[1]; lookAt1[2] = SensorPosition[2] + rotatedDir1[2];
+															
+	float dir2[3], rotatedDir2[3];
+	dir2[0] = 1.0; dir2[1] = 0.0; dir2[2] = 0.0; 
+	multiplyRotationalMatrix(&dir2[0], &rotatedDir2[0]);
+	lookAt2[0] = SensorPosition[0] + rotatedDir2[0]; lookAt2[1] = SensorPosition[1] + rotatedDir2[1]; lookAt2[2] = SensorPosition[2] + rotatedDir2[2];
+
+	float dir3[3], rotatedDir3[3];
+	dir3[0] = -1.0; dir3[1] = 0.0; dir3[2] = 0.0; 
+	multiplyRotationalMatrix(&dir3[0], &rotatedDir3[0]);
+	lookAt3[0] = SensorPosition[0] + rotatedDir3[0]; lookAt3[1] = SensorPosition[1] + rotatedDir3[1]; lookAt3[2] = SensorPosition[2] + rotatedDir3[2];
+
+	float dir4[3], rotatedDir4[3];
+	dir4[0] = 0.0; dir4[1] = 0.0; dir4[2] = 1.0; 
+	multiplyRotationalMatrix(&dir4[0], &rotatedDir4[0]);
+	lookAt4[0] = SensorPosition[0] + rotatedDir4[0]; lookAt4[1] = SensorPosition[1] + rotatedDir4[1]; lookAt4[2] = SensorPosition[2] + rotatedDir4[2];
 
 
-	ls1->renderSceneToDepthTexture(fbo_[0], lookAt1, texture_width, texture_height, scene_, window_width, window_height);
-	ls1->renderSceneToDepthTexture(fbo_[1], lookAt2, texture_width, texture_height, scene_, window_width, window_height);
-	ls1->renderSceneToDepthTexture(fbo_[2], lookAt3, texture_width, texture_height, scene_, window_width, window_height);
-	ls1->renderSceneToDepthTexture(fbo_[3], lookAt4, texture_width, texture_height, scene_, window_width, window_height);
+	float upDirection[3], rotatedUpDirection[3];	
+	upDirection[0] = 0.0; upDirection[1] = 1.0; upDirection[2] = 0.0; 
+	multiplyRotationalMatrix(&upDirection[0], &rotatedUpDirection[0]);
+
+	/*
+	ls1->renderSceneToDepthTexture(fbo_[0], lookAt1, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->renderSceneToDepthTexture(fbo_[1], lookAt2, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->renderSceneToDepthTexture(fbo_[2], lookAt3, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->renderSceneToDepthTexture(fbo_[3], lookAt4, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
 
 		
 	ls1->depthTextureToRealDepthValues(depth_texture[0], fbo_1[0], VBO, window_height, window_width, texture_width, texture_height);
 	ls1->depthTextureToRealDepthValues(depth_texture[1], fbo_1[1], VBO, window_height, window_width, texture_width, texture_height);
 	ls1->depthTextureToRealDepthValues(depth_texture[2], fbo_1[2], VBO, window_height, window_width, texture_width, texture_height);
 	ls1->depthTextureToRealDepthValues(depth_texture[3], fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
+	  */
+
+
+	ls1->renderSceneToDepthTexture(fbo_, lookAt1, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[0], VBO, window_height, window_width, texture_width, texture_height);
+
+	ls1->renderSceneToDepthTexture(fbo_, lookAt2, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[1], VBO, window_height, window_width, texture_width, texture_height);
 	
+
+	ls1->renderSceneToDepthTexture(fbo_, lookAt3, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[2], VBO, window_height, window_width, texture_width, texture_height);
+	
+	ls1->renderSceneToDepthTexture(fbo_, lookAt4, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+	ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
+
+
+
 
 	cout<<"depth images generated"<<endl;
 
@@ -191,6 +239,9 @@ void LaserSensorWrapper::paintGL()
 
 	//// clear all and draw the scene
 
+	const clock_t begin_time = clock();
+	// do something
+	
 	glClearColor (0.0, 0.0, 0.0, 0.0);	
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
@@ -207,6 +258,7 @@ void LaserSensorWrapper::paintGL()
 
 		glColor3f (1.0, 1.0, 1.0);
 		
+		
 													 
 		float* SensorPosition = ls1->getSensorPosition();
 		float lookAt1[3], lookAt2[3], lookAt3[3], lookAt4[3];
@@ -216,6 +268,7 @@ void LaserSensorWrapper::paintGL()
 		lookAt4[0] = SensorPosition[0] + 0.0; lookAt4[1] = SensorPosition[1] + 0.0; lookAt4[2] = SensorPosition[2] + 1.0;
 
 
+		/*
 		ls1->renderSceneToDepthTexture(fbo_[0], lookAt1, texture_width, texture_height, scene_, window_width, window_height);
 		ls1->renderSceneToDepthTexture(fbo_[1], lookAt2, texture_width, texture_height, scene_, window_width, window_height);
 		ls1->renderSceneToDepthTexture(fbo_[2], lookAt3, texture_width, texture_height, scene_, window_width, window_height);
@@ -225,7 +278,8 @@ void LaserSensorWrapper::paintGL()
 		ls1->depthTextureToRealDepthValues(depth_texture[1], fbo_1[1], VBO, window_height, window_width, texture_width, texture_height);
 		ls1->depthTextureToRealDepthValues(depth_texture[2], fbo_1[2], VBO, window_height, window_width, texture_width, texture_height);
 		ls1->depthTextureToRealDepthValues(depth_texture[3], fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
-	
+		  */
+
 		glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		switch (scanPatternType){
@@ -243,9 +297,11 @@ void LaserSensorWrapper::paintGL()
 					break;
 		}
 
-
+																  
+		
+		
 		//If You want to Visualize the point Cloud on the console side
-		/*
+		
 		glBegin(GL_POINTS);
 
 		for(int i=0; i<100000; i++) 
@@ -266,10 +322,14 @@ void LaserSensorWrapper::paintGL()
 		glEnd(); 
 
 		glDisable(GL_DEPTH_TEST);
-		  */
-		//swapBuffers();
+		
+		swapBuffers();
 
+		//glRotatef(0.1, 0.0, 1.0, 0.0);
+		
 		//updateGL();
+
+		std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC <<std::endl;
 
 }
 
@@ -306,6 +366,7 @@ void LaserSensorWrapper::startSensor(int Sampling_Frequency)
 	ls1->setSamplingFrequency(Sampling_Frequency);
 	ls1->startClock();
 	
+	_renderTimer->start();
 }
 
 
@@ -386,4 +447,80 @@ void LaserSensorWrapper::saveModel(QString path)
 	std::cerr << "Saved " << cloud.points.size () << " data points to test_pcd.pcd." << std::endl;
 
 	_renderTimer->start();
+}
+
+
+void LaserSensorWrapper::reRenderScene()
+{
+		float* SensorPosition = ls1->getSensorPosition();
+		float lookAt1[3], lookAt2[3], lookAt3[3], lookAt4[3];
+		
+		float dir1[3], rotatedDir1[3];
+		dir1[0] = 0.0; dir1[1] = 0.0; dir1[2] = -1.0; 
+		multiplyRotationalMatrix(&dir1[0], &rotatedDir1[0]);
+		lookAt1[0] = SensorPosition[0] + rotatedDir1[0]; lookAt1[1] = SensorPosition[1] + rotatedDir1[1]; lookAt1[2] = SensorPosition[2] + rotatedDir1[2];
+															
+		float dir2[3], rotatedDir2[3];
+		dir2[0] = 1.0; dir2[1] = 0.0; dir2[2] = 0.0; 
+		multiplyRotationalMatrix(&dir2[0], &rotatedDir2[0]);
+		lookAt2[0] = SensorPosition[0] + rotatedDir2[0]; lookAt2[1] = SensorPosition[1] + rotatedDir2[1]; lookAt2[2] = SensorPosition[2] + rotatedDir2[2];
+
+		float dir3[3], rotatedDir3[3];
+		dir3[0] = -1.0; dir3[1] = 0.0; dir3[2] = 0.0; 
+		multiplyRotationalMatrix(&dir3[0], &rotatedDir3[0]);
+		lookAt3[0] = SensorPosition[0] + rotatedDir3[0]; lookAt3[1] = SensorPosition[1] + rotatedDir3[1]; lookAt3[2] = SensorPosition[2] + rotatedDir3[2];
+
+		float dir4[3], rotatedDir4[3];
+		dir4[0] = 0.0; dir4[1] = 0.0; dir4[2] = 1.0; 
+		multiplyRotationalMatrix(&dir4[0], &rotatedDir4[0]);
+		lookAt4[0] = SensorPosition[0] + rotatedDir4[0]; lookAt4[1] = SensorPosition[1] + rotatedDir4[1]; lookAt4[2] = SensorPosition[2] + rotatedDir4[2];
+																		 
+
+		float upDirection[3], rotatedUpDirection[3];	
+		upDirection[0] = 0.0; upDirection[1] = 1.0; upDirection[2] = 0.0; 
+		multiplyRotationalMatrix(&upDirection[0], &rotatedUpDirection[0]);
+
+
+		ls1->renderSceneToDepthTexture(fbo_, lookAt1, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+		ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[0], VBO, window_height, window_width, texture_width, texture_height);
+
+		ls1->renderSceneToDepthTexture(fbo_, lookAt2, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+		ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[1], VBO, window_height, window_width, texture_width, texture_height);
+	
+
+		ls1->renderSceneToDepthTexture(fbo_, lookAt3, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+		ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[2], VBO, window_height, window_width, texture_width, texture_height);
+	
+		ls1->renderSceneToDepthTexture(fbo_, lookAt4, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
+		ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
+
+}
+
+void LaserSensorWrapper::multiplyRotationalMatrix(float *inVec, float *outVec)
+{
+	float rotMatrix[3][3];
+	float* SensorOrientation = ls1->getSensorOrientation();
+
+	float c3 =  cos(SensorOrientation[0]); //Roll
+	float c2 =  cos(SensorOrientation[1]); //Pitch
+	float c1 =  cos(SensorOrientation[2]); //Yaw
+
+	float s3 =  sin(SensorOrientation[0]); //Roll
+	float s2 =  sin(SensorOrientation[1]); //Pitch
+	float s1 =  sin(SensorOrientation[2]); //Yaw
+
+	rotMatrix[0][0] = c1*c2;
+	rotMatrix[0][1] = c1*s2*s3 - c3*s1;
+	rotMatrix[0][2] = s1*s3 + c1*s2*c3;
+	rotMatrix[1][0] = c2*s1;
+	rotMatrix[1][1] = c1*c3 + s1*s2*s3;
+	rotMatrix[1][2] = c3*s1*s2 - c1*s3;
+	rotMatrix[2][0] = -s2;
+	rotMatrix[2][1] = c2*s3;
+	rotMatrix[2][2] = c2*c3;
+
+	outVec[0] = rotMatrix[0][0]*inVec[0] + rotMatrix[0][1]*inVec[1] + rotMatrix[0][2]*inVec[2];
+	outVec[1] = rotMatrix[1][0]*inVec[0] + rotMatrix[1][1]*inVec[1] + rotMatrix[1][2]*inVec[2];
+	outVec[2] = rotMatrix[2][0]*inVec[0] + rotMatrix[2][1]*inVec[1] + rotMatrix[2][2]*inVec[2];
+
 }
