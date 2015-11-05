@@ -75,9 +75,10 @@ namespace pcl
 				//Saves the point Cloud
 				void saveModel(QString path);
 
+				//Changes position and orientation of the Camera				
+				void changeSensorPose(float x, float y, float z, float roll, float pitch, float yaw);
 
-				//multiply any vector to the current Rotational Matrix
-				void multiplyRotationalMatrix(float *inVec, float *outVec);
+
 
 
 				void update();
@@ -85,7 +86,11 @@ namespace pcl
 			private:
 	
 				//Loading OBJ and PLY model for simulating the scene
-				void load_PolygonMesh_model (char* polygon_file);
+				bool load_PolygonMesh_model (std::string polygon_file);
+
+				//multiply any vector to the current Rotational Matrix
+				void multiplyRotationalMatrix(float *inVec, float *outVec);
+
 	
 				
 				void reRenderScene();

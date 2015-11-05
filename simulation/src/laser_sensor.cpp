@@ -178,7 +178,7 @@ void pcl::simulation::LaserSensor::depthTextureToRealDepthValues(GLuint &dtextur
 
 
 
-void pcl::simulation::LaserSensor::generateRenderingDepthTextures(GLuint &dtexture, 
+bool pcl::simulation::LaserSensor::generateRenderingDepthTextures(GLuint &dtexture, 
 																	GLuint &dfbo,
 																	int texture_width,
 																	int texture_height)
@@ -204,13 +204,14 @@ void pcl::simulation::LaserSensor::generateRenderingDepthTextures(GLuint &dtextu
 	
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-	if(status!= GL_FRAMEBUFFER_COMPLETE) cout<<"framebuffer incomplete"<<endl;
+	if(status!= GL_FRAMEBUFFER_COMPLETE) return false;
 	glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
+	return true;
 }
 
 
-void pcl::simulation::LaserSensor::generateOffsetTextures(GLuint &dtexture_offset, 
+bool pcl::simulation::LaserSensor::generateOffsetTextures(GLuint &dtexture_offset, 
 															GLuint &dfbo_offset,
 															int texture_width,
 															int texture_height)
@@ -237,15 +238,17 @@ void pcl::simulation::LaserSensor::generateOffsetTextures(GLuint &dtexture_offse
 	
 	GLenum status_1 = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-	if(status_1!= GL_FRAMEBUFFER_COMPLETE) cout<<"framebuffer incomplete"<<endl;
+	if(status_1!= GL_FRAMEBUFFER_COMPLETE) return false;
 	glBindFramebuffer (GL_FRAMEBUFFER, 0);
+
+	return true;
 }
 
 
 /*
 This shader is for displaying the Scene(colour scene for reference).
 */
-void pcl::simulation::LaserSensor::CreateShaders()
+bool pcl::simulation::LaserSensor::CreateShaders()
 {
     GLenum ErrorCheckValue = glGetError();
     
@@ -277,7 +280,7 @@ void pcl::simulation::LaserSensor::CreateShaders()
         glAttachShader(ProgramId, FragmentShaderId);
     glLinkProgram(ProgramId);
 
-	cout<<"PROGRAM ID:"<<ProgramId<<" "<<VertexShaderId<<" "<<FragmentShaderId<<endl;
+	//cout<<"PROGRAM ID:"<<ProgramId<<" "<<VertexShaderId<<" "<<FragmentShaderId<<endl;
 
 	GLint status;
     glGetProgramiv (ProgramId, GL_LINK_STATUS, &status);
@@ -292,6 +295,8 @@ void pcl::simulation::LaserSensor::CreateShaders()
         glGetProgramInfoLog(ProgramId, infoLogLength, NULL, strInfoLog);
         fprintf(stderr, "Linker failure: %s\n", strInfoLog);
         delete[] strInfoLog;
+
+		return false;
     }
 
 
@@ -303,11 +308,11 @@ void pcl::simulation::LaserSensor::CreateShaders()
             "ERROR: Could not create the shaders: %s \n",
             gluErrorString(ErrorCheckValue)
         );
- 
-        exit(-1);
+
+		return false; 
     }
 
-	cout<<"ShaderCreated"<<endl;
+	return true;
 }
 
 
@@ -327,7 +332,7 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudFullScan(GLuint final_d
 		_scanLineIndex = 0;
 	}
 	
-	performScan(ScanPatternType::FULL_FIELD_SCAN, final_depth_texture_fbo, points, 35, -35, 0, 360);
+	performScan(ScanPatternType::FULL_FIELD_SCAN, final_depth_texture_fbo, texture_width, texture_height, points, 35, -35, 0, 360);
 
 }
 
@@ -351,7 +356,7 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudBoundedElevation(GLuint
 		_scanLineIndex = 0;
 	}
 
-	performScan(ScanPatternType::BOUNDED_ELEVATION_SCAN, final_depth_texture_fbo,  points, upperBound, lowerBound, 0, 360);
+	performScan(ScanPatternType::BOUNDED_ELEVATION_SCAN, final_depth_texture_fbo, texture_width, texture_height,  points, upperBound, lowerBound, 0, 360);
 
 }
 
@@ -377,7 +382,7 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudRegionScan(GLuint final
 		_scanLineIndex = 0;
 	}
 
-	performScan(ScanPatternType::REGION_SCAN, final_depth_texture_fbo, points, upperBound, lowerBound, angularRight, angularLeft);
+	performScan(ScanPatternType::REGION_SCAN, final_depth_texture_fbo, texture_width, texture_height, points, upperBound, lowerBound, angularRight, angularLeft);
 
 }
 
@@ -386,6 +391,8 @@ void pcl::simulation::LaserSensor::generateRE0xPointCloudRegionScan(GLuint final
 
 void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 												GLuint final_depth_texture_fbo[],
+												int texture_width, 
+												int texture_height,
 												float *points,
 												float upperBound,
 												float lowerBound,
@@ -439,6 +446,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 	char* udpData = new char[900];
 		
+	
 		
 	if(_scanLineAdd==1)
 	{
@@ -473,7 +481,14 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 		//Calculating Azimuthal Angle of the Current Point
 		azimuthal_angle = angularRight + azimuthal_offset;
-		if(azimuthal_angle>360) azimuthal_angle = azimuthal_angle - 360;				//check if this condition is ever true
+		if(azimuthal_angle>360) 
+		{
+			azimuthal_angle = azimuthal_angle - 360;				//check if this condition is ever true
+		}
+		else if (azimuthal_angle<0)
+		{
+			azimuthal_angle = azimuthal_angle + 360;
+		}
 
 
 		//Calculating Elevation Angle of the Current Point
@@ -489,7 +504,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 		cos_phi = cos(phi*PI/180.0);
 		sin_phi = sin(phi*PI/180.0);
 			
-		if(azimuthal_angle>=45.0 && azimuthal_angle<135.0)				//texture 1
+		if(azimuthal_angle>45.0 && azimuthal_angle<=135.0)				//texture 1
 		{
 			phi =  azimuthal_angle - 90;
 			cos_phi = cos(phi*PI/180.0);
@@ -508,9 +523,6 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 			direction[1] /= magnitude;
 			direction[2] /= magnitude;
 
-
-			//distance = (float)pixels[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
-
 			glBindFramebuffer (GL_FRAMEBUFFER, final_depth_texture_fbo[0]);
 
 			GLubyte rgb[4];
@@ -522,7 +534,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 		}
 
-		else if (azimuthal_angle>=135.0 && azimuthal_angle<225.0)		//texture 3
+		else if (azimuthal_angle>135.0 && azimuthal_angle<=225.0)		//texture 3
 		{
 			phi = azimuthal_angle - 180;
 			cos_phi = cos(phi*PI/180.0);
@@ -539,10 +551,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 			direction[0] /= magnitude;
 			direction[1] /= magnitude;
 			direction[2] /= magnitude;
-
-			//distance = (float)pixels3[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
-
-				
+		
 			glBindFramebuffer (GL_FRAMEBUFFER, final_depth_texture_fbo[2]);
 
 			GLubyte rgb[4];
@@ -553,7 +562,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 			glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
 		}
-		else if (azimuthal_angle>=225.0 && azimuthal_angle<315.0)		//texture 4
+		else if (azimuthal_angle>225.0 && azimuthal_angle<=315.0)		//texture 4
 		{
 			phi = azimuthal_angle - 270;
 			cos_phi = cos(phi*PI/180.0);
@@ -572,8 +581,6 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 			direction[1] /= magnitude;
 			direction[2] /= magnitude;
 
-			//distance = (float)pixels4[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
-				
 			glBindFramebuffer (GL_FRAMEBUFFER, final_depth_texture_fbo[3]);
 
 			GLubyte rgb[4];
@@ -586,13 +593,13 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 		}
 		else
 		{
-			if(azimuthal_angle>=315.0)
+			if(azimuthal_angle>315.0)
 			{
 				phi = azimuthal_angle - 360;
 				cos_phi = cos(phi*PI/180.0);
 				sin_phi = sin(phi*PI/180.0);
 			}
-			else if(azimuthal_angle>=0.0 && azimuthal_angle<45.0)
+			else if(azimuthal_angle>=0.0 && azimuthal_angle<=45.0)
 			{
 				phi= azimuthal_angle;
 				cos_phi = cos(phi*PI/180.0);
@@ -613,9 +620,6 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 			direction[0] /= magnitude;
 			direction[1] /= magnitude;
 			direction[2] /= magnitude;
-
-			//distance = (float)pixels2[3*(int)height_value*texture_width + 3*(int)width_value]*_zfar/ 255.0;
-
 				
 			glBindFramebuffer (GL_FRAMEBUFFER, final_depth_texture_fbo[1]);
 
@@ -632,16 +636,17 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 				
 		if(distance<(_zfar-0.0001f))
 		{
-		point[0] = _CameraPosition[0] + distance*direction[0];
-		point[1] = _CameraPosition[1] + distance*direction[1];
-		point[2] = _CameraPosition[2] + distance*direction[2];
+			float rotatedDir[3];
+			multiplyRotationalMatrix(&direction[0], &rotatedDir[0]);
+			point[0] = _CameraPosition[0] + distance*rotatedDir[0];
+			point[1] = _CameraPosition[1] + distance*rotatedDir[1];
+			point[2] = _CameraPosition[2] + distance*rotatedDir[2];
 		}
 		else
 		{
 			point[0] = 0.0; point[1] = 0.0; point[2] = 0.0;
 			distance = 0.0;
 		}
-				
 				
 		if(_index>=100000)
 		{
@@ -718,3 +723,32 @@ void pcl::simulation::LaserSensor::startClock()
 	//Start the Sensor Clock 60MHz
 }
 
+
+
+void pcl::simulation::LaserSensor::multiplyRotationalMatrix(float *inVec, float *outVec)
+{
+	float rotMatrix[3][3];
+
+	float c3 =  cos(_CameraOrientation[0]); //Roll
+	float c2 =  cos(_CameraOrientation[1]); //Pitch
+	float c1 =  cos(_CameraOrientation[2]); //Yaw
+
+	float s3 =  sin(_CameraOrientation[0]); //Roll
+	float s2 =  sin(_CameraOrientation[1]); //Pitch
+	float s1 =  sin(_CameraOrientation[2]); //Yaw
+
+	rotMatrix[0][0] = c1*c2;
+	rotMatrix[0][1] = c1*s2*s3 - c3*s1;
+	rotMatrix[0][2] = s1*s3 + c1*s2*c3;
+	rotMatrix[1][0] = c2*s1;
+	rotMatrix[1][1] = c1*c3 + s1*s2*s3;
+	rotMatrix[1][2] = c3*s1*s2 - c1*s3;
+	rotMatrix[2][0] = -s2;
+	rotMatrix[2][1] = c2*s3;
+	rotMatrix[2][2] = c2*c3;
+
+	outVec[0] = rotMatrix[0][0]*inVec[0] + rotMatrix[0][1]*inVec[1] + rotMatrix[0][2]*inVec[2];
+	outVec[1] = rotMatrix[1][0]*inVec[0] + rotMatrix[1][1]*inVec[1] + rotMatrix[1][2]*inVec[2];
+	outVec[2] = rotMatrix[2][0]*inVec[0] + rotMatrix[2][1]*inVec[1] + rotMatrix[2][2]*inVec[2];
+
+}

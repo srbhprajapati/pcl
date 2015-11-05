@@ -45,6 +45,8 @@ namespace pcl
 
 				void saveModel(QString path);
 
+				void changeSensorPose(float x, float y, float z, float roll, float pitch, float yaw);
+
 			private slots:
 				//reads the datagrams sent by Client
 				void readPendingDatagrams();

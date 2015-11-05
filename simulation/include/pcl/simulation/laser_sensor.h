@@ -100,14 +100,14 @@ namespace pcl
 				 *	Method for generating textures (Scene Depth Texture and Offset Texture) 
 				 *	for scene rendering.
 				 */													 
-				void generateOffsetTextures(GLuint &dtexture_offset, 
+				bool generateOffsetTextures(GLuint &dtexture_offset, 
 											GLuint &dfbo_offset,
 											int texture_width,
 											int texture_height);
 
 
 				
-				void generateRenderingDepthTextures(GLuint &dtexture, 
+				bool generateRenderingDepthTextures(GLuint &dtexture, 
 													GLuint &dfbo,
 													int texture_width,
 													int texture_height);
@@ -117,7 +117,7 @@ namespace pcl
 				/*
 				 *	Creation of Vertex shader and fragment shader for rendering
 				 */
-				void CreateShaders();
+				bool CreateShaders();
 
 
 				/*
@@ -173,6 +173,11 @@ namespace pcl
 				*/
 				void setSensorPosition(float xpos, float ypos, float zpos){_CameraPosition[0] = xpos; _CameraPosition[1] = ypos; _CameraPosition[2] = zpos;}
 				
+				/*
+				Sets the position(x,y,z) of the sensor in 3D Space.
+				*/
+				void setSensorOrientation(float roll, float pitch, float yaw){_CameraOrientation[0] = roll; _CameraOrientation[1] = pitch; _CameraOrientation[2] = yaw;}
+				
 
 				/*
 				Returns the position(x,y,z) of the sensor in 3D Space.
@@ -190,6 +195,8 @@ namespace pcl
 				void setSamplingFrequency(int freq){ _samplingFrequency = freq;}
 
 				void startClock();
+
+				void LaserSensor::multiplyRotationalMatrix(float *inVec, float *outVec);
 				
 
 			signals:
@@ -237,6 +244,8 @@ namespace pcl
 
 				void performScan(ScanPatternType scanMode,
 								GLuint final_depth_texture_fbo[],
+								int texture_width, 
+								int texture_height,
 								float *points,
 								float upperBound,
 								float lowerBound,

@@ -164,7 +164,7 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			}
 	
 			
-			if(azimuthalValue>0 && azimuthalValue<16 && scanlineValue>0 && upper_bound<45.0 && lower_bound>-45.0 && lAngular>0 && rAngular>0)
+			if(azimuthalValue>0 && azimuthalValue<16 && scanlineValue>0 && upper_bound<=35.0 && lower_bound>=-35.0 && lAngular>=0 && rAngular>=0)
 			{
 				emit startRegionScan(azimuthalValue, scanlineValue, upper_bound, lower_bound, lAngular, rAngular);
 
@@ -213,6 +213,30 @@ void pcl::simulation::LaserSensorUdpInterface::readPendingDatagrams()
 			std::string path(constPathPointer, datagram.size()-6);
 
 			emit saveModel(QString::fromStdString(path));
+		}
+		else if(packetHeader.compare("RECHLP")==0)
+		{
+			float x,y,z, roll, pitch, yaw;
+			unsigned char* datagramPointer = reinterpret_cast<unsigned char*>(datagram.data());
+			
+			memcpy(&x,		datagramPointer+6,	sizeof(x));
+			memcpy(&y,		datagramPointer+10, sizeof(y));
+			memcpy(&z,		datagramPointer+14, sizeof(z));
+			memcpy(&roll,	datagramPointer+18, sizeof(roll));
+			memcpy(&pitch,	datagramPointer+22, sizeof(pitch));
+			memcpy(&yaw,	datagramPointer+26, sizeof(yaw));
+
+			//Convert degree to radian
+			roll *= 0.0174533;
+			pitch *= 0.0174533;
+			yaw *= 0.0174533;
+
+			changeSensorPose(x, y, z, roll, pitch, yaw);
+
+			//send Acknowledgement
+			char* ackPacket = new char[6];
+			memcpy(ackPacket, "EACHLP", 6);
+			sendAcknowledgement(ackPacket);
 		}
 
     }
