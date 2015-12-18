@@ -39,6 +39,12 @@ namespace pcl
 				~LaserSensorWrapper();
 
 				
+				enum ScanPatterns{
+					FULL_SCAN,
+					BOUNDED_ELEVATION_SCAN,
+					REGION_SCAN
+				};
+
 				
 			protected:
 				
@@ -91,10 +97,12 @@ namespace pcl
 				//multiply any vector to the current Rotational Matrix
 				void multiplyRotationalMatrix(float *inVec, float *outVec);
 
-	
-				
+				//Method for reGenerating the textures to refresh the scene. This method is
+				//called in cases when the Sensor position or orientation is changed
 				void reRenderScene();
 				
+				//Vertex Buffer Object for storing the vertices of two triangles i.e. rectangle(image) 
+				//where the rendering needs to happen
 				GLuint VBO;
 
 				// Depth Texture Height and Width
@@ -118,7 +126,9 @@ namespace pcl
 				GLuint depth_texture, depth_texture_1[4], fbo_ , fbo_1[4];
 	
 				//Scan Pattern Type
-				char scanPatternType;
+				//char scanPatternType;
+
+				ScanPatterns currentScanPattern;
 
 				//All the points which are sensed by the sensor
 				float *points;

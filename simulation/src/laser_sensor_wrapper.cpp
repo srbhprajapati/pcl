@@ -27,7 +27,11 @@ LaserSensorWrapper::LaserSensorWrapper(QWidget *parent) :
 	angular_left=40.0;
 
 	points = new float [MAXIMUM_POINTS*3];
-	scanPatternType = 'A';
+	//scanPatternType = 'A';
+
+	currentScanPattern = ScanPatterns::FULL_SCAN;
+
+
 	_isSensorActive = true;
 
 	ls1 = new LaserSensor(); 
@@ -150,17 +154,61 @@ void LaserSensorWrapper::initializeGL()
 	}
 	
 	
-
-	//Generate Rendering textures
-	std::cout<<"Generating Rendering Texture... ";
-	if(!ls1->generateRenderingDepthTextures(depth_texture, fbo_, texture_width, texture_height))
+	//For Texture Allocation on GPU with low memory. Least supported texture will be 100 x 100
+	while(texture_width>100)
 	{
-			std::cout<<"\nError In Generating Render Texture... Exiting Application !!!"<<std::endl;
-			exit(1);
-	}
-	else std::cout<<"Done!"<<std::endl;
+		
+		bool _isAllTexturesAllocated = true;
 
-	std::cout<<"Generating Offset Textures... ";
+		//Generate Rendering textures
+		std::cout<<"Generating Rendering Texture... ";
+		if(!ls1->generateRenderingDepthTextures(depth_texture, fbo_, texture_width, texture_height)) _isAllTexturesAllocated = false;
+
+		//Generate Offset Textures
+		std::cout<<"Generating Offset Textures... ";
+		if(!ls1->generateOffsetTextures(depth_texture_1[0], fbo_1[0], texture_width, texture_height)) _isAllTexturesAllocated = false;
+		if(!ls1->generateOffsetTextures(depth_texture_1[1], fbo_1[1], texture_width, texture_height)) _isAllTexturesAllocated = false;
+		if(!ls1->generateOffsetTextures(depth_texture_1[2], fbo_1[2], texture_width, texture_height)) _isAllTexturesAllocated = false;
+		if(!ls1->generateOffsetTextures(depth_texture_1[3], fbo_1[3], texture_width, texture_height)) _isAllTexturesAllocated = false;
+
+		if(_isAllTexturesAllocated) break;
+		else
+		{
+			std::cout<<"\nError In Generating Render/Offset Textures... Reducing Texture Resolution !!!"<<std::endl;
+
+			glDeleteTextures(1, &depth_texture);
+			glDeleteTextures(1, &depth_texture_1[0]);
+			glDeleteTextures(1, &depth_texture_1[1]);
+			glDeleteTextures(1, &depth_texture_1[2]);
+			glDeleteTextures(1, &depth_texture_1[3]);
+
+			glDeleteFramebuffers(1, &fbo_);
+			glDeleteFramebuffers(1, &fbo_1[0]);
+			glDeleteFramebuffers(1, &fbo_1[1]);
+			glDeleteFramebuffers(1, &fbo_1[2]);
+			glDeleteFramebuffers(1, &fbo_1[3]);
+
+			texture_width = texture_width/2;
+			texture_height = texture_height/2;
+
+			std::cout<<"Trying to Allocate memory for Texture Width : "<<texture_width<<" and Texture_Height : "<<texture_height<<std::endl;
+		}
+
+	}
+
+	//If the application is not allocate any memory to the minimum size textures
+	if(texture_width<=100)
+	{
+		std::cout<<"GPU Memory too low for allocation to the textures...Exiting Application!!!"<<std::endl;
+		exit(1);
+	}
+	else
+	{
+		std::cout<<"Done!"<<std::endl;
+	}
+
+
+	/*
 	if(!ls1->generateOffsetTextures(depth_texture_1[0], fbo_1[0], texture_width, texture_height))
 	{
 			std::cout<<"\nError In Generating Offset Textures... Exiting Application !!!"<<std::endl;
@@ -183,7 +231,7 @@ void LaserSensorWrapper::initializeGL()
 	}
 	std::cout<<"Done!"<<std::endl;
 
-
+	*/
 
 	//Vertex Data for Two Triangles i.e. Image rectangle
 	float f[] =	{1.0, 1.0, 0.0, 1.0, 1.0, 
@@ -366,7 +414,10 @@ void LaserSensorWrapper::startFullFieldScan(int Azimuthal_value, int Scanline_va
 	Azimuthal_freq = Azimuthal_value; 
 	Number_of_Scanlines	= Scanline_value;
 
-	scanPatternType = 'A';
+	//scanPatternType = 'A';
+
+	currentScanPattern = ScanPatterns::FULL_SCAN;
+
 }
 
 void LaserSensorWrapper::startBoundedElevationScan(int Azimuthal_value, int Scanline_value, float upper_bound, float lower_bound)
@@ -376,7 +427,9 @@ void LaserSensorWrapper::startBoundedElevationScan(int Azimuthal_value, int Scan
 	u_bound= upper_bound;
 	l_bound= lower_bound;
 
-	scanPatternType = 'B';
+	//scanPatternType = 'B';
+
+	currentScanPattern = ScanPatterns::BOUNDED_ELEVATION_SCAN;
 }
 
 void LaserSensorWrapper::startRegionScan(int Azimuthal_value, int Scanline_value, float upper_bound, float lower_bound, float lAngular, float rAngular)
@@ -388,7 +441,9 @@ void LaserSensorWrapper::startRegionScan(int Azimuthal_value, int Scanline_value
 	angular_right= rAngular;
 	angular_left= lAngular;
 
-	scanPatternType = 'C';
+	//scanPatternType = 'C';
+
+	currentScanPattern = ScanPatterns::REGION_SCAN;
 }
 
 						   
@@ -399,7 +454,7 @@ void LaserSensorWrapper::stopSensor()
 
 void LaserSensorWrapper::update()
 {
-	
+	/*
 		switch (scanPatternType){
 				case 'A':
 					ls1->generateRE0xPointCloudFullScan(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points);
@@ -414,8 +469,28 @@ void LaserSensorWrapper::update()
 					ls1->generateRE0xPointCloudFullScan(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points);
 					break;
 		}
+		*/
+		
 
-								
+	switch (currentScanPattern){
+
+				case ScanPatterns::FULL_SCAN:
+					ls1->generateRE0xPointCloudFullScan(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points);
+					break;
+
+				case ScanPatterns::BOUNDED_ELEVATION_SCAN:
+					ls1->generateRE0xPointCloudBoundedElevation(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points, u_bound, l_bound);
+					break;
+
+				case ScanPatterns::REGION_SCAN:
+					ls1->generateRE0xPointCloudRegionScan(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points, u_bound, l_bound, angular_right, angular_left);
+					break;
+
+				default:
+					ls1->generateRE0xPointCloudFullScan(depth_texture_1, Azimuthal_freq, Number_of_Scanlines, texture_width, texture_height, points);
+					break;
+		}
+
 	paintGL();
 }
 

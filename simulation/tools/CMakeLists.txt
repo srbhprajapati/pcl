@@ -1,7 +1,11 @@
 find_package(GLEW)
 
-find_package(Qt  5.3.2 REQUIRED QtCore QtOpenGL QtNetwork QtGui)
+#find_package(Qt  5.3.2 REQUIRED QtCore QtOpenGL QtNetwork QtGui)
+
+find_package(Qt5Core)
+find_package(Qt5OpenGL)
 find_package(Qt5Network)
+find_package(Qt5Gui)
 
 SET(QT_USE_QTNETWORK TRUE)
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
