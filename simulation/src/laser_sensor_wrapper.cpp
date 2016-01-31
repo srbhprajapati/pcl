@@ -3,6 +3,7 @@
 #include <QtWidgets>
 #include <ctime>
 #include <cmath>
+#include <QtGui/qimage.h>
 
 using namespace std;
 
@@ -164,6 +165,7 @@ void LaserSensorWrapper::initializeGL()
 		std::cout<<"Generating Rendering Texture... ";
 		if(!ls1->generateRenderingDepthTextures(depth_texture, fbo_, texture_width, texture_height)) _isAllTexturesAllocated = false;
 
+		
 		//Generate Offset Textures
 		std::cout<<"Generating Offset Textures... ";
 		if(!ls1->generateOffsetTextures(depth_texture_1[0], fbo_1[0], texture_width, texture_height)) _isAllTexturesAllocated = false;
@@ -285,6 +287,11 @@ void LaserSensorWrapper::initializeGL()
 	
 	ls1->renderSceneToDepthTexture(fbo_, lookAt4, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
 	ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
+
+	//saveImageToFile(depth_texture_1[0]);
+	//saveImageToFile(depth_texture_1[1]);
+	//saveImageToFile(depth_texture_1[2]);
+	//saveImageToFile(depth_texture_1[3]);
 
 }
 
@@ -585,6 +592,8 @@ void LaserSensorWrapper::reRenderScene()
 		ls1->renderSceneToDepthTexture(fbo_, lookAt4, rotatedUpDirection, texture_width, texture_height, scene_, window_width, window_height);
 		ls1->depthTextureToRealDepthValues(depth_texture, fbo_1[3], VBO, window_height, window_width, texture_width, texture_height);
 
+		
+
 }
 
 void LaserSensorWrapper::multiplyRotationalMatrix(float *inVec, float *outVec)
@@ -613,5 +622,26 @@ void LaserSensorWrapper::multiplyRotationalMatrix(float *inVec, float *outVec)
 	outVec[0] = rotMatrix[0][0]*inVec[0] + rotMatrix[0][1]*inVec[1] + rotMatrix[0][2]*inVec[2];
 	outVec[1] = rotMatrix[1][0]*inVec[0] + rotMatrix[1][1]*inVec[1] + rotMatrix[1][2]*inVec[2];
 	outVec[2] = rotMatrix[2][0]*inVec[0] + rotMatrix[2][1]*inVec[1] + rotMatrix[2][2]*inVec[2];
+
+}
+
+void LaserSensorWrapper::saveImageToFile(GLuint textureID)
+{
+	std::cout<<"Texture Number : "<<textureID<<std::endl;
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	unsigned char *pixelData = new unsigned char[texture_width*texture_width*4];
+	glGetTexImage(GL_TEXTURE_2D, 0,GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
+
+	QImage *img = new QImage(pixelData, texture_width, texture_height, QImage::Format_RGB32);
+	QString fileName = "Image" + QString::number(textureID) + ".jpg";
+
+	img->save(fileName.toStdString().c_str(), "JPG", -1);
+
+	img->~QImage();
+	delete[] pixelData;
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 }

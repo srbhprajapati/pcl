@@ -97,6 +97,9 @@ namespace pcl
 				//multiply any vector to the current Rotational Matrix
 				void multiplyRotationalMatrix(float *inVec, float *outVec);
 
+				//Saves Texture to an Image
+				void saveImageToFile(GLuint textureID);
+
 				//Method for reGenerating the textures to refresh the scene. This method is
 				//called in cases when the Sensor position or orientation is changed
 				void reRenderScene();

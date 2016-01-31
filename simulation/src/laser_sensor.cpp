@@ -193,20 +193,86 @@ bool pcl::simulation::LaserSensor::generateRenderingDepthTextures(GLuint &dtextu
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	GLenum err = glGetError();
+	
 	glTexImage2D (GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, texture_width, texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	
+	err = glGetError();
+	if(err == GL_OUT_OF_MEMORY)
+	{
+		std::cout<<"GL_OUT_OF_MEMORY Error"<<std::endl;
+	}
+	else if(err == GL_INVALID_OPERATION)
+	{
+		std::cout<<"GL_INVALID_OPERATION Error"<<std::endl;
+	}
+	else if(err ==  GL_INVALID_VALUE)
+	{
+		std::cout<<"GL_INVALID_VALUE Error"<<std::endl;		
+	}
+	else if(err == GL_INVALID_ENUM)
+	{
+		std::cout<<"GL_INVALID_ENUM  Error"<<std::endl;		
+	}
+	else
+	{
+		std::cout<<"Unknown Error : "<<err<<std::endl;
+	}
 	glBindTexture (GL_TEXTURE_2D, 0);
 
 	//generate framebuffer to attach to the depth texture
 	glGenFramebuffers (1, &dfbo);
 	glBindFramebuffer (GL_FRAMEBUFFER, dfbo);
+
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
 	glFramebufferTexture2D (GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dtexture, 0);
 	
 	
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-	if(status!= GL_FRAMEBUFFER_COMPLETE) return false;
+	if(status!= GL_FRAMEBUFFER_COMPLETE)
+	{
+		if(status == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT)
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_UNSUPPORTED)
+		{
+			std::cout<<"GL_FRAMEBUFFER_UNSUPPORTED"<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_UNDEFINED )
+		{
+			std::cout<<"GL_FRAMEBUFFER_UNDEFINED "<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER )
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER "<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER )
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER "<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE  )
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE  "<<std::endl;
+		}
+		else if(status == GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS   )
+		{
+			std::cout<<"GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS  "<<std::endl;
+		}
+		
+			std::cout<<"Error In Creating RenderBuffer"<<std::endl;
+			return false;
+	}
 	glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
+	std::cout<<"reached here renderbuffer"<<std::endl;
 	return true;
 }
 
@@ -227,9 +293,35 @@ bool pcl::simulation::LaserSensor::generateOffsetTextures(GLuint &dtexture_offse
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	GLenum err = glGetError();
 	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_FLOAT, NULL); // add offset data to offset buffer
+	err = glGetError();
+	if(err == GL_OUT_OF_MEMORY)
+	{
+		std::cout<<"GL_OUT_OF_MEMORY Error"<<std::endl;
+	}
+	else if(err == GL_INVALID_OPERATION)
+	{
+		std::cout<<"GL_INVALID_OPERATION Error"<<std::endl;
+	}
+	else if(err ==  GL_INVALID_VALUE)
+	{
+		std::cout<<"GL_INVALID_VALUE Error"<<std::endl;		
+	}
+	else if(err == GL_INVALID_ENUM)
+	{
+		std::cout<<"GL_INVALID_ENUM  Error"<<std::endl;		
+	}
+	else
+	{
+		std::cout<<"Unknown Error : "<<err<<std::endl;
+	}
 	glBindTexture (GL_TEXTURE_2D, 0);
 
+	GLint maxSize;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+	std::cout<<"GL_MAX_TEXTURE_SIZE : "<< maxSize<<std::endl;
+	
 
 	//generate framebuffer to attach to the depth texture
 	glGenFramebuffers (1, &dfbo_offset);
@@ -238,9 +330,15 @@ bool pcl::simulation::LaserSensor::generateOffsetTextures(GLuint &dtexture_offse
 	
 	GLenum status_1 = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-	if(status_1!= GL_FRAMEBUFFER_COMPLETE) return false;
+	if(status_1!= GL_FRAMEBUFFER_COMPLETE) 
+	{
+		std::cout<<"Error In Creating OffsetBuffer"<<std::endl;
+		return false;
+	}
 	glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
+
+	std::cout<<"reached here"<<std::endl;
 	return true;
 }
 
@@ -252,6 +350,7 @@ bool pcl::simulation::LaserSensor::CreateShaders()
 {
     GLenum ErrorCheckValue = glGetError();
     
+	
 	//Vertex Shader Initialization
     VertexShaderId = glCreateShader(GL_VERTEX_SHADER);
 	ifstream ifs("shader.vert");
@@ -273,14 +372,14 @@ bool pcl::simulation::LaserSensor::CreateShaders()
 	glShaderSource(FragmentShaderId, 1, &fragmentShader, NULL);
     glCompileShader(FragmentShaderId);
 
-
+	
 	//Creating Final Program by Attaching both the shaders
     ProgramId = glCreateProgram();
         glAttachShader(ProgramId, VertexShaderId);
         glAttachShader(ProgramId, FragmentShaderId);
     glLinkProgram(ProgramId);
 
-	//cout<<"PROGRAM ID:"<<ProgramId<<" "<<VertexShaderId<<" "<<FragmentShaderId<<endl;
+	
 
 	GLint status;
     glGetProgramiv (ProgramId, GL_LINK_STATUS, &status);
@@ -288,14 +387,28 @@ bool pcl::simulation::LaserSensor::CreateShaders()
 	//If there is an error in creating Shader Program
     if (status == GL_FALSE)
     {
-        GLint infoLogLength;
-        glGetProgramiv(ProgramId, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-        glGetProgramInfoLog(ProgramId, infoLogLength, NULL, strInfoLog);
-        fprintf(stderr, "Linker failure: %s\n", strInfoLog);
-        delete[] strInfoLog;
+		GLint maxLength = 0;
+		glGetProgramiv(ProgramId, GL_INFO_LOG_LENGTH, &maxLength);
 
+		//The maxLength includes the NULL character
+		std::vector<GLchar> infoLog(maxLength);
+		glGetProgramInfoLog(ProgramId, maxLength, &maxLength, &infoLog[0]);
+
+		std::cout<<"Max Length : "<<maxLength<<std::endl;
+
+		for (std::vector<char>::const_iterator i = infoLog.begin(); i != infoLog.end(); ++i)
+			std::cout << *i << ' ';
+
+		for(int j=0; j<infoLog.size(); j++)
+		{
+			std::cout<< infoLog[j] <<' ';
+		}
+
+		//The program is useless now. So delete it.
+		glDeleteProgram(ProgramId);
+
+		//Provide the infolog in whatever manner you deem best.
+		//Exit with failure.
 		return false;
     }
 
@@ -646,6 +759,11 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 		{
 			point[0] = 0.0; point[1] = 0.0; point[2] = 0.0;
 			distance = 0.0;
+		}
+
+		if(j==47)
+		{
+			std::cout<<"Point Value x : "<<point[0]<<" y : "<<point[1]<<" z : "<<point[2]<<std::endl; 
 		}
 				
 		if(_index>=100000)
