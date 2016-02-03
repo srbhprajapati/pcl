@@ -27,7 +27,7 @@ pcl::simulation::LaserSensor::LaserSensor()
 		
 		//Near Plane Far Plane of the Camera
 		_znear = 1.0f;
-		_zfar = 10.0f;
+		_zfar = 30.0f;
 		
 		//Default Number of Scanlines
 		_scanLineIndex = 32;
@@ -640,8 +640,11 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 			GLubyte rgb[4];
 			glReadPixels((int)width_value, (int)height_value, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgb);
-			unsigned int val2 = (unsigned int)rgb[0];
-			distance = val2*_zfar/255.0;
+			
+			float tempDistance = rgb[0] + rgb[1] * 256.0 + rgb[2] * 256.0 * 256.0;;
+			tempDistance/=16777216;
+			
+			distance = tempDistance*_zfar;
 
 			glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
@@ -669,8 +672,11 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 			GLubyte rgb[4];
 			glReadPixels((int)width_value, (int)height_value, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgb);
-			unsigned int val2 = (unsigned int)rgb[0];
-			distance = val2*_zfar/255.0;
+			
+			float tempDistance = rgb[0] + rgb[1] * 256.0 + rgb[2] * 256.0 * 256.0;;
+			tempDistance/=16777216;
+			
+			distance = tempDistance*_zfar;
 
 			glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
@@ -698,8 +704,11 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 			GLubyte rgb[4];
 			glReadPixels((int)width_value, (int)height_value, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgb);
-			unsigned int val2 = (unsigned int)rgb[0];
-			distance = val2*_zfar/255.0;
+			
+			float tempDistance = rgb[0] + rgb[1] * 256.0 + rgb[2] * 256.0 * 256.0;;
+			tempDistance/=16777216;
+			
+			distance = tempDistance*_zfar;
 
 			glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
@@ -738,8 +747,11 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 			GLubyte rgb[4];
 			glReadPixels((int)width_value, (int)height_value, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgb);
-			unsigned int val2 = (unsigned int)rgb[0];
-			distance = val2*_zfar/255.0;
+			
+			float tempDistance = rgb[0] + rgb[1] * 256.0 + rgb[2] * 256.0 * 256.0;;
+			tempDistance/=16777216;
+			
+			distance = tempDistance*_zfar;
 
 			glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
@@ -763,7 +775,7 @@ void pcl::simulation::LaserSensor::performScan(	ScanPatternType scanMode,
 
 		if(j==47)
 		{
-			std::cout<<"Point Value x : "<<point[0]<<" y : "<<point[1]<<" z : "<<point[2]<<std::endl; 
+			//std::cout<<"Point Value x : "<<point[0]<<" y : "<<point[1]<<" z : "<<point[2]<<std::endl; 
 		}
 				
 		if(_index>=100000)

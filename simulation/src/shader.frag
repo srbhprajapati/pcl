@@ -1,4 +1,4 @@
-#version 120
+#version 130
 
 uniform sampler2D depth_texture;
 uniform vec3 cam_pos;
@@ -7,6 +7,15 @@ uniform float zFar;
 uniform float textureLength;
 varying vec2 texCoord;
 
+
+vec3 unpackColor(float f) {
+    vec3 color;
+    color.b = floor(f / 256.0 / 256.0);
+    color.g = floor((f - color.b * 256.0 * 256.0) / 256.0);
+    color.r = floor(f - color.b * 256.0 * 256.0 - color.g * 256.0);
+    // now we have a vec3 with the 3 components in range [0..256]. Let's normalize it!
+    return color / 256.0;
+}	
 
 void main (void)  
 {
@@ -30,7 +39,12 @@ void main (void)
 	
 	float val2 = z_e/cos_thetha;
 
-		val2 /= zf;
+	val2 /= zf;
+	
+	//To make the value between 0 to 1 => 0 16777216 so that the precision is maintained
+	val2 *= 16777216;
+	
+	vec3 distance_value = unpackColor(val2);
 		
-	gl_FragColor = vec4(val2, val2, val2, 1.0);  
+	gl_FragColor = vec4(distance_value, 1.0);
 }  
